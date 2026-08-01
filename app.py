@@ -2,26 +2,31 @@ import sys
 import types
 
 # -------------------------------------------------------------
-# PARCHE GLOBAL CRÍTICO PARA DISTUTILS.VERSION (Python 3.12+)
+# PARCHE AVANZADO PARA DISTUTILS.VERSION (Compatible con Python 3.14)
 # -------------------------------------------------------------
-class LooseVersion:
+class LooseVersion(list):
     def __init__(self, vstring=None):
         self.vstring = vstring
-        self.version = [int(x) for x in vstring.split(".") if x.isdigit()] if vstring else []
-        
+        # Convertir la versión en una lista de enteros para que sea compatible con operaciones nativas
+        versions = [int(x) for x in str(vstring).split(".") if x.isdigit()] if vstring else []
+        super().__init__(versions)
+        self.version = versions
+
     def __str__(self):
         return self.vstring or ""
+    
     def __repr__(self):
         return f"LooseVersion ('{self.vstring}')"
+
     def _cmp(self, other):
         if isinstance(other, LooseVersion):
-            other_v = other.version
+            other_v = other
         else:
             other_v = [int(x) for x in str(other).split(".") if x.isdigit()]
         
-        if self.version == other_v:
+        if self == other_v:
             return 0
-        elif self.version < other_v:
+        elif self < other_v:
             return -1
         else:
             return 1
@@ -33,7 +38,7 @@ class LooseVersion:
     def __eq__(self, other): return self._cmp(other) == 0
     def __ne__(self, other): return self._cmp(other) != 0
 
-# Forzar el módulo en el sistema antes de que cualquier librería lo requiera
+# Inyectar los módulos simulados antes de cualquier importación de terceros
 distutils_mod = types.ModuleType("distutils")
 distutils_version = types.ModuleType("distutils.version")
 distutils_version.LooseVersion = LooseVersion
