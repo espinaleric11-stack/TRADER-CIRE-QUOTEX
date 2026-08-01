@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 # 1. Configuración de la interfaz
 st.set_page_config(
-    page_title="CyberTrader - Analizador Avanzado (UTC-3)", 
+    page_title="CyberTrader - Analizador Avanzado con WinRate (UTC-3)", 
     page_icon="⚡", 
     layout="wide"
 )
@@ -173,7 +173,7 @@ st.markdown("""
         <span class="cyber-icon">⚡</span>
         <div>
             <p class="cyber-title-text">CYBER-TRADER</p>
-            <p class="cyber-subtitle">Quantum Analytics Engine</p>
+            <p class="cyber-subtitle">Quantum Analytics Engine + WinRate Tracker</p>
         </div>
     </div>
     <div class="utc-badge">
@@ -212,7 +212,7 @@ temporalidad = st.sidebar.selectbox(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.info("💡 **Interfaz Cyber:** Estética adaptada con diseño de terminal y sincronización UTC-3.")
+st.sidebar.info("💡 **Historial Activo:** El motor evalúa de forma retrospectiva las últimas señales generadas para auditar el porcentaje de acierto.")
 
 # --- RENDERIZAR LA TARJETA VISUAL IDÉNTICA AL BRÓKER ---
 info_actual = activos_info[activo_seleccionado]
@@ -235,7 +235,7 @@ st.markdown(f"""
 
 # 4. Lógica principal del analizador
 if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
-    with st.spinner(f"Sincronizando matrices de datos para {activo_seleccionado}..."):
+    with st.spinner(f"Sincronizando matrices de datos y calculando historial para {activo_seleccionado}..."):
         try:
             import yfinance as yf
             
@@ -243,8 +243,8 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
             periodo = "1d" if temporalidad in ["1m", "5m", "15m"] else "5d"
             df = yf.download(symbol_to_fetch, period=periodo, interval=temporalidad, progress=False)
             
-            if df.empty or len(df) < 25:
-                st.warning("⚠️ Datos insuficientes en este intervalo temporal. Intenta cambiar de temporalidad.")
+            if df.empty or len(df) < 40:
+                st.warning("⚠️ Datos insuficientes en este intervalo temporal para generar el historial. Intenta cambiar de temporalidad.")
             else:
                 if isinstance(df.columns, pd.MultiIndex):
                     df.columns = df.columns.get_level_values(0)
@@ -270,6 +270,50 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
                 true_range = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
                 df['ATR'] = true_range.rolling(window=14).mean()
                 
+                # --- SIMULADOR / HISTORIAL RETROSPECTIVO DE SEÑALES (BACKTESTING RÁPIDO) ---
+                historial_senales = []
+                # Evaluamos desde la vela 30 hasta el penúltimo registro para ver si la siguiente vela dio ganancia
+                for i in range(30, len(df) - 1):
+                    p_close = df['Close'].iloc[i]
+                    e5 = df['EMA_5'].iloc[i]
+                    e20 = df['EMA_20'].iloc[i]
+                    rsi = df['RSI'].iloc[i]
+                    bb_mid = df['BB_Middle'].iloc[i]
+                    
+                    tendencia_alcista = e5 > e20
+                    tendencia_bajista = e5 < e20
+                    
+                    is_call = tendencia_alcista and rsi < 62 and (p_close <= bb_mid)
+                    is_put = tendencia_bajista and rsi > 38 and (p_close >= bb_mid)
+                    
+                    if is_call or is_put:
+                        # Precio de entrada (cierre de vela actual) y precio de salida (cierre de la siguiente vela)
+                        precio_entrada = p_close
+                        precio_siguiente = df['Close'].iloc[i + 1]
+                        
+                        if is_call:
+                            resultado = "WIN 🟢" if precio_siguiente > precio_entrada else "LOSS 🔴"
+                            tipo = "CALL"
+                        else:
+                            resultado = "WIN 🟢" if precio_siguiente < precio_entrada else "LOSS 🔴"
+                            tipo = "PUT"
+                            
+                        timestamp_vela = df.index[i]
+                        historial_senales.append({
+                            "Hora / Fecha": str(timestamp_vela),
+                            "Tipo": tipo,
+                            "Entrada": round(float(precio_entrada), 5),
+                            "Resultado": resultado
+                        })
+                
+                # Convertir a DataFrame para mostrar
+                df_historial = pd.DataFrame(historial_senales)
+                
+                wins = len(df_historial[df_historial["Resultado"] == "WIN 🟢"]) if not df_historial.empty else 0
+                total_senales = len(df_historial)
+                winrate = (wins / total_senales * 100) if total_senales > 0 else 0.0
+
+                # Valores actuales para la señal en vivo
                 precio_actual = float(df['Close'].iloc[-1])
                 ema5_val = float(df['EMA_5'].iloc[-1])
                 ema20_val = float(df['EMA_20'].iloc[-1])
@@ -290,21 +334,21 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
                 timestamp_siguiente_vela = ((timestamp_actual // segundos_totales) + 1) * segundos_totales
                 
                 siguiente_vela_dt = datetime.fromtimestamp(timestamp_siguiente_vela, tz_utc_minus_3)
-                
                 hora_actual_str = ahora_utc3.strftime("%H:%M:%S")
                 hora_entrada_str = siguiente_vela_dt.strftime("%H:%M:%S")
                 
                 # --- MÉTRICAS VISUALES ---
-                col1, col2, col3, col4 = st.columns(4)
+                col1, col2, col3, col4, col5 = st.columns(5)
                 col1.metric("Precio Actual", f"{precio_actual:.5f}")
                 col2.metric("EMA 5 / 20", f"{ema5_val:.4f} / {ema20_val:.4f}")
                 col3.metric("RSI (14)", f"{rsi_val:.1f}")
-                col4.metric("Hora Actual (UTC-3)", hora_actual_str)
+                col4.metric("Efectividad (WinRate)", f"{winrate:.1f}%")
+                col5.metric("Hora Actual (UTC-3)", hora_actual_str)
                 
                 st.markdown("---")
                 
-                # --- MOTOR DE DECISIÓN DE ALTA CONFLUENCIA ---
-                st.subheader(f"🎯 Diagnóstico Cuántico para: {activo_seleccionado}")
+                # --- MOTOR DE DECISIÓN EN VIVO ---
+                st.subheader(f"🎯 Diagnóstico Cuántico en Vivo para: {activo_seleccionado}")
                 
                 razones = []
                 tendencia_alcista = ema5_val > ema20_val
@@ -330,6 +374,17 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
                     st.warning(f"### ⚪ FILTRADO: MERCADO EN ZONA NEUTRAL O RUIDO")
                     st.write("El sistema ha neutralizado la operación para proteger capital. No hay confluencia exacta.")
                 
+                # --- SECCIÓN DE HISTORIAL DE ACIERTOS ---
+                st.markdown("---")
+                st.subheader("📜 Historial de Aciertos Recientes (Backtesting de Señales)")
+                st.markdown("Esta tabla audita el comportamiento de las señales generadas en las velas anteriores bajo las mismas reglas del sistema:")
+                
+                if not df_historial.empty:
+                    st.dataframe(df_historial.tail(10).iloc[::-1], use_container_width=True)
+                    st.info(eval(f"f'📊 Resumen Histórico: De {total_senales} señales evaluadas recientemente, {wins} resultaron en éxito, arrojando un WinRate histórico de **{winrate:.1f}%**.'"))
+                else:
+                    st.warning("No se registraron suficientes señales pasadas en este periodo para construir el historial.")
+                
                 with st.expander("🔍 Ver detalles técnicos de los filtros"):
                     for r in razones:
                         st.write(f"- {r}")
@@ -341,11 +396,8 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
                 st.subheader("📊 Gráfica Cuántica de Precios y Bollinger")
                 df_chart = df[['Close', 'BB_Upper', 'BB_Middle', 'BB_Lower']].tail(50)
                 st.line_chart(df_chart)
-                
-                with st.expander("Ver matriz de datos históricos"):
-                    st.dataframe(df[['Close', 'EMA_5', 'EMA_20', 'RSI', 'ATR']].tail(10))
 
         except Exception as e:
             st.error(f"Error crítico en el procesamiento de datos: {e}")
 else:
-    st.info("👈 Selecciona tu activo en la barra lateral y haz clic en **INICIAR ESCANEO CUÁNTICO**.")
+    st.info("👈 Selecciona tu activo en la barra lateral y haz clic académico en **INICIAR ESCANEO CUÁNTICO**.")
