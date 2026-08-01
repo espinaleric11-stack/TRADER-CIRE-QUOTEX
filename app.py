@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. Inyectar Estilos CSS Futuristas (Cyberpunk / Neón)
+# 2. Inyectar Estilos CSS Modernos y Cabecera Compacta
 st.markdown("""
 <style>
     /* Fondo general de la aplicación */
@@ -19,12 +19,58 @@ st.markdown("""
         color: #e0e0e0;
     }
     
-    /* Estilo de la tarjeta de activo idéntica al bróker con toque futurista */
+    /* Cabecera / Header Compacto y Moderno */
+    .cyber-header {
+        background: linear-gradient(135deg, #121420 0%, #1a1d2d 100%);
+        border: 1px solid rgba(0, 255, 204, 0.4);
+        border-radius: 12px;
+        padding: 15px 25px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 25px;
+        box-shadow: 0 0 20px rgba(0, 255, 204, 0.15);
+    }
+    .cyber-logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .cyber-icon {
+        font-size: 26px;
+    }
+    .cyber-title-text {
+        font-size: 20px;
+        font-weight: 900;
+        letter-spacing: 1.5px;
+        color: #00ffcc;
+        text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+        margin: 0;
+    }
+    .cyber-subtitle {
+        font-size: 11px;
+        color: #8a99ad;
+        letter-spacing: 0.5px;
+        margin: 0;
+        text-transform: uppercase;
+    }
+    .utc-badge {
+        background: rgba(0, 255, 204, 0.1);
+        border: 1px solid #00ffcc;
+        color: #00ffcc;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1px;
+    }
+
+    /* Estilo de la tarjeta de activo idéntica al bróker */
     .broker-card {
         background: linear-gradient(135deg, #121420 0%, #1a1d2d 100%);
         border: 1px solid #00ffcc;
         border-radius: 12px;
-        padding: 14px 18px;
+        padding: 12px 18px;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -88,8 +134,8 @@ st.markdown("""
         color: #00ffcc;
     }
 
-    /* Títulos con brillo neón */
-    h1, h2, h3 {
+    /* Subtítulos de secciones */
+    h2, h3 {
         color: #00ffcc !important;
         font-family: 'Segoe UI', Roboto, sans-serif;
         text-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
@@ -112,7 +158,7 @@ st.markdown("""
         transform: scale(1.02);
     }
 
-    /* Métricas con diseño holográfico */
+    /* Métricas */
     [data-testid="stMetricValue"] {
         color: #00ffcc !important;
         text-shadow: 0 0 8px rgba(0, 255, 204, 0.4);
@@ -120,8 +166,21 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.title("⚡ CYBER-TRADER // QUANTUM ENGINE (UTC-3)")
-st.markdown("Sistema de análisis cuántico independiente con **EMA**, **RSI**, **Bandas de Bollinger** y **Filtro ATR** en tiempo real.")
+# --- CABECERA COMPACTA Y MODERNA ---
+st.markdown("""
+<div class="cyber-header">
+    <div class="cyber-logo">
+        <span class="cyber-icon">⚡</span>
+        <div>
+            <p class="cyber-title-text">CYBER-TRADER</p>
+            <p class="cyber-subtitle">Quantum Analytics Engine</p>
+        </div>
+    </div>
+    <div class="utc-badge">
+        ZONA: UTC-3
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # 3. Diccionario de activos con URLs de sus respectivas banderas circulares oficiales
 activos_info = {
