@@ -5,12 +5,12 @@ from datetime import datetime, timedelta, timezone
 
 # 1. Configuración de la interfaz
 st.set_page_config(
-    page_title="CyberTrader // High-Precision Terminal (UTC-3)", 
+    page_title="CyberTrader // Configurable Terminal (UTC-3)", 
     page_icon="⚡", 
     layout="wide"
 )
 
-# 2. Inyectar Estilos CSS Futuristas de Última Generación
+# 2. Inyectar Estilos CSS Futuristas
 st.markdown("""
 <style>
     .stApp {
@@ -63,7 +63,6 @@ st.markdown("""
         font-size: 12px;
         font-weight: 700;
         letter-spacing: 1px;
-        box-shadow: inset 0 0 10px rgba(0, 255, 204, 0.2);
     }
     .broker-card {
         background: linear-gradient(135deg, rgba(18, 20, 32, 0.9) 0%, rgba(26, 29, 45, 0.9) 100%);
@@ -182,7 +181,7 @@ st.markdown("""
         <span class="cyber-icon">⚡</span>
         <div>
             <p class="cyber-title-text">CYBER-TRADER</p>
-            <p class="cyber-subtitle">High-Precision Quantum Engine (Strict Filter Mode)</p>
+            <p class="cyber-subtitle">Configurable Quantum Engine & Signal Tracker</p>
         </div>
     </div>
     <div class="utc-badge">
@@ -206,9 +205,19 @@ activos_info = {
     "XAU/USD (Oro / OTC)": {"symbol": "GC=F", "flag1": "https://flagcdn.com/w80/un.png", "flag2": "https://flagcdn.com/w80/us.png", "profit": "88%"}
 }
 
+# --- PANEL LATERAL DE CONFIGURACIÓN ---
 st.sidebar.header("⚙️ Configuración del Núcleo")
+
 activo_seleccionado = st.sidebar.selectbox("Seleccionar Activo / Par", list(activos_info.keys()))
 temporalidad = st.sidebar.selectbox("Temporalidad de las Velas", ["1m", "5m", "15m", "1h", "1d"])
+
+st.sidebar.markdown("---")
+st.sidebar.subheader("🛡️ Nivel de Estrictez de la App")
+nivel_estrictez = st.sidebar.selectbox(
+    "Selecciona la exigencia de los filtros",
+    ["Conservador (Ultra Seguro / WinRate Alto)", "Moderado (Equilibrado)", "Agresivo (Mayor Frecuencia)"],
+    index=0
+)
 
 st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Limpiar Historial de Señales"):
@@ -233,8 +242,8 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-if st.sidebar.button("🚀 INICIAR ESCANEO DE ALTA SEGURIDAD"):
-    with st.spinner(f"Aplicando filtros estrictos de confluencia para {activo_seleccionado}..."):
+if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
+    with st.spinner(f"Escaneando {activo_seleccionado} con nivel [{nivel_estrictez}]..."):
         try:
             import yfinance as yf
             
@@ -276,7 +285,6 @@ if st.sidebar.button("🚀 INICIAR ESCANEO DE ALTA SEGURIDAD"):
                 bb_upper = float(df['BB_Upper'].iloc[-1])
                 bb_lower = float(df['BB_Lower'].iloc[-1])
                 atr_val = float(df['ATR'].iloc[-1]) if not np.isnan(df['ATR'].iloc[-1]) else 0.0
-                atr_promedio = float(df['ATR'].mean())
                 
                 # --- HORA UTC-3 ---
                 tz_utc_minus_3 = timezone(timedelta(hours=-3))
@@ -290,29 +298,36 @@ if st.sidebar.button("🚀 INICIAR ESCANEO DE ALTA SEGURIDAD"):
                 hora_actual_str = ahora_utc3.strftime("%H:%M:%S")
                 hora_entrada_str = siguiente_vela_dt.strftime("%H:%M:%S")
                 
-                # --- NUEVO MOTOR DE ALTA SEGURIDAD Y ESTRICTO ---
-                # Exigimos que la tendencia sea clara, el RSI esté en extremos de sobreventa/sobrecompra
-                # y que el precio haya tocado o rebasado las bandas de Bollinger con volatilidad suficiente.
-                tendencia_alcista_fuerte = (ema5_val > ema20_val) and ((ema5_val - ema20_val) > (atr_val * 0.1))
-                tendencia_bajista_fuerte = (ema5_val < ema20_val) and ((ema20_val - ema5_val) > (atr_val * 0.1))
+                # --- MOTOR DE DECISIÓN ADAPTATIVO SEGÚN EL NIVEL DE ESTRICTEZ ---
+                if "Conservador" in nivel_estrictez:
+                    # Filtros muy estrictos (WinRate Máximo)
+                    tendencia_ok_call = (ema5_val > ema20_val)
+                    tendencia_ok_put = (ema5_val < ema20_val)
+                    rsi_ok_call = rsi_val <= 40
+                    rsi_ok_put = rsi_val >= 60
+                    bb_ok_call = precio_actual <= (bb_lower + (atr_val * 0.3))
+                    bb_ok_put = precio_actual >= (bb_upper - (atr_val * 0.3))
+                elif "Moderado" in nivel_estrictez:
+                    # Filtros equilibrados
+                    tendencia_ok_call = (ema5_val > ema20_val)
+                    tendencia_ok_put = (ema5_val < ema20_val)
+                    rsi_ok_call = rsi_val <= 48
+                    rsi_ok_put = rsi_val >= 52
+                    bb_ok_call = precio_actual <= bb_middle
+                    bb_ok_put = precio_actual >= bb_middle
+                else:
+                    # Agresivo (Frecuencia alta)
+                    tendencia_ok_call = (ema5_val >= ema20_val)
+                    tendencia_ok_put = (ema5_val <= ema20_val)
+                    rsi_ok_call = rsi_val < 55
+                    rsi_ok_put = rsi_val > 45
+                    bb_ok_call = True
+                    bb_ok_put = True
+
+                es_call = tendencia_ok_call and rsi_ok_call and bb_ok_call
+                es_put = tendencia_ok_put and rsi_ok_put and bb_ok_put
                 
-                volatilidad_suficiente = atr_val >= (atr_promedio * 0.7)
-                
-                es_call_seguro = (
-                    tendencia_alcista_fuerte and 
-                    rsi_val <= 42 and  # RSI bajo (zona de rebote alcista estricta)
-                    precio_actual <= (bb_lower + (atr_val * 0.5)) and  # Cerca o por debajo de la banda inferior
-                    volatilidad_suficiente
-                )
-                
-                es_put_seguro = (
-                    tendencia_bajista_fuerte and 
-                    rsi_val >= 58 and  # RSI alto (zona de rebote bajista estricta)
-                    precio_actual >= (bb_upper - (atr_val * 0.5)) and  # Cerca o por encima de la banda superior
-                    volatilidad_suficiente
-                )
-                
-                nueva_senal = "CALL" if es_call_seguro else ("PUT" if es_put_seguro else None)
+                nueva_senal = "CALL" if es_call else ("PUT" if es_put else None)
                 
                 if nueva_senal:
                     id_registro = f"{activo_seleccionado}-{hora_entrada_str}"
@@ -337,54 +352,53 @@ if st.sidebar.button("🚀 INICIAR ESCANEO DE ALTA SEGURIDAD"):
                 col1, col2, col3, col4, col5 = st.columns(5)
                 col1.metric("Precio Actual", f"{precio_actual:.5f}")
                 col2.metric("EMA 5 / 20", f"{ema5_val:.4f} / {ema20_val:.4f}")
-                col3.metric("RSI Estricto", f"{rsi_val:.1f}")
-                col4.metric("WinRate Protegido", f"{winrate_propio:.1f}%")
+                col3.metric("RSI (14)", f"{rsi_val:.1f}")
+                col4.metric("WinRate App", f"{winrate_propio:.1f}%")
                 col5.metric("Hora (UTC-3)", hora_actual_str)
                 
                 st.markdown("---")
-                st.subheader(f"🛡️ Diagnóstico de Seguridad para: {activo_seleccionado}")
+                st.subheader(f"🎯 Diagnóstico para: {activo_seleccionado} [{nivel_estrictez.split()[0]}]")
                 
-                if es_call_seguro:
+                if es_call:
                     st.markdown(f"""
                     <div class="success-box">
-                        <h3 style="color: #00ff80 !important; margin:0;">🟢 SEÑAL ULTRA-SEGURA: CALL (COMPRA)</h3>
+                        <h3 style="color: #00ff80 !important; margin:0;">🟢 SEÑAL VÁLIDA: CALL (COMPRA)</h3>
                         <p style="margin: 5px 0 0 0; font-size:15px;">🕒 <b>Hora de entrada exacta:</b> {hora_entrada_str} UTC-3</p>
-                        <p style="margin: 2px 0 0 0; color: #b0c4de; font-size: 13px;">Filtros estrictos superados: Tendencia alcista confirmada + RSI en sobreventa (<=42) + Rebote en Banda Inferior + ATR óptimo.</p>
+                        <p style="margin: 2px 0 0 0; color: #b0c4de; font-size: 13px;">Condiciones superadas bajo el perfil configurado.</p>
                     </div>
                     """, unsafe_allow_html=True)
-                elif es_put_seguro:
+                elif es_put:
                     st.markdown(f"""
                     <div class="error-box">
-                        <h3 style="color: #ff4b4b !important; margin:0;">🔴 SEÑAL ULTRA-SEGURA: PUT (VENTA)</h3>
+                        <h3 style="color: #ff4b4b !important; margin:0;">🔴 SEÑAL VÁLIDA: PUT (VENTA)</h3>
                         <p style="margin: 5px 0 0 0; font-size:15px;">🕒 <b>Hora de entrada exacta:</b> {hora_entrada_str} UTC-3</p>
-                        <p style="margin: 2px 0 0 0; color: #b0c4de; font-size: 13px;">Filtros estrictos superados: Tendencia bajista confirmada + RSI en sobrecompra (>=58) + Rebote en Banda Superior + ATR óptimo.</p>
+                        <p style="margin: 2px 0 0 0; color: #b0c4de; font-size: 13px;">Condiciones superadas bajo el perfil configurado.</p>
                     </div>
                     """, unsafe_allow_html=True)
                 else:
-                    st.warning("### ⚪ FILTRO DE SEGURIDAD ACTIVADO: MERCADO DESCARTADO\nPara proteger tu capital y elevar drásticamente los aciertos, el sistema ha bloqueado la emisión de señales porque no se cumplen los 4 filtros simultáneos de confluencia extrema.")
+                    st.warning(f"### ⚪ FILTRADO: MERCADO NEUTRAL\nBajo el modo **{nivel_estrictez}**, el sistema no encontró una confluencia exacta en este momento para proteger tu capital.")
                 
                 st.markdown("---")
-                st.subheader("📜 Historial de Señales de Alta Seguridad")
+                st.subheader("📜 Historial de Señales Emitidas")
                 
                 if len(st.session_state.historial_app) > 0:
                     df_app_hist = pd.DataFrame(st.session_state.historial_app)[["Hora", "Activo", "Señal", "Entrada", "Resultado"]]
                     st.dataframe(df_app_hist.iloc[::-1], use_container_width=True)
-                    st.info(f"📊 Estadísticas del Filtro Estricto: {total_guardadas} señales emitidas | {wins_guardadas} aciertos | Efectividad: **{winrate_propio:.1f}%**")
+                    st.info(f"📊 Estadísticas: {total_guardadas} señales emitidas | {wins_guardadas} aciertos | Efectividad: **{winrate_propio:.1f}%**")
                 else:
-                    st.info("No se han emitido señales bajo este filtro estricto. La aplicación esperará pacientemente hasta encontrar una oportunidad con alta probabilidad matemática de éxito.")
+                    st.info("Aún no se han emitido señales en esta sesión con el nivel de estrictez seleccionado.")
                 
-                with st.expander("🔍 Ver estado de los Filtros de Seguridad en tiempo real"):
-                    st.write(f"- **Tendencia Alcista Fuerte:** {'✅ Sí' if tendencia_alcista_fuerte else '❌ No'}")
-                    st.write(f"- **Tendencia Bajista Fuerte:** {'✅ Sí' if tendencia_bajista_fuerte else '❌ No'}")
-                    st.write(f"- **Filtro RSI Extremo:** {'✅ Superado' if (rsi_val <= 42 or rsi_val >= 58) else '❌ En zona neutral (' + str(round(rsi_val, 1)) + ')'}")
-                    st.write(f"- **Volatilidad ATR Óptima:** {'✅ Sí' if volatilidad_suficiente else '❌ Mercado lateral o con ruido'}")
+                with st.expander("🔍 Ver detalles técnicos"):
+                    st.write(f"- **Modo de Estrictez Activo:** {nivel_estrictez}")
+                    st.write(f"- **RSI Actual:** {rsi_val:.1f}")
+                    st.write(f"- **Volatilidad ATR:** {atr_val:.5f}")
 
                 st.markdown("---")
-                st.subheader("📊 Gráfica de Precisión y Rangos")
+                st.subheader("📊 Gráfica de Precios y Bollinger")
                 df_chart = df[['Close', 'BB_Upper', 'BB_Middle', 'BB_Lower']].tail(50)
                 st.line_chart(df_chart)
 
         except Exception as e:
-            st.error(f"Error en el procesamiento seguro: {e}")
+            st.error(f"Error crítico: {e}")
 else:
-    st.info("👈 Selecciona tu activo y haz clic en **INICIAR ESCANEO DE ALTA SEGURIDAD** para buscar operaciones con filtros estrictos.")
+    st.info("👈 Configura tu nivel de estrictez en la barra lateral y haz clic en **INICIAR ESCANEO CUÁNTICO**.")
