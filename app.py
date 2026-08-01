@@ -1,20 +1,21 @@
+import streamlit as st
+import asyncio
+import pandas as pd
 import sys
 import types
 
 # -------------------------------------------------------------
-# PARCHE AVANZADO PARA DISTUTILS.VERSION (Compatible con Python 3.14)
+# PARCHE GLOBAL PARA DISTUTILS.VERSION (Python 3.14)
 # -------------------------------------------------------------
 class LooseVersion(list):
     def __init__(self, vstring=None):
         self.vstring = vstring
-        # Convertir la versión en una lista de enteros para que sea compatible con operaciones nativas
         versions = [int(x) for x in str(vstring).split(".") if x.isdigit()] if vstring else []
         super().__init__(versions)
         self.version = versions
 
     def __str__(self):
         return self.vstring or ""
-    
     def __repr__(self):
         return f"LooseVersion ('{self.vstring}')"
 
@@ -23,7 +24,6 @@ class LooseVersion(list):
             other_v = other
         else:
             other_v = [int(x) for x in str(other).split(".") if x.isdigit()]
-        
         if self == other_v:
             return 0
         elif self < other_v:
@@ -38,47 +38,40 @@ class LooseVersion(list):
     def __eq__(self, other): return self._cmp(other) == 0
     def __ne__(self, other): return self._cmp(other) != 0
 
-# Inyectar los módulos simulados antes de cualquier importación de terceros
 distutils_mod = types.ModuleType("distutils")
 distutils_version = types.ModuleType("distutils.version")
 distutils_version.LooseVersion = LooseVersion
 distutils_mod.version = distutils_version
-
 sys.modules["distutils"] = distutils_mod
 sys.modules["distutils.version"] = distutils_version
 # -------------------------------------------------------------
 
-import streamlit as st
-import asyncio
-import pandas as pd
-
-# Configuración visual de la interfaz
 st.set_page_config(page_title="Señales Quotex", page_icon="📈", layout="centered")
 
 st.title("📈 Generador de Señales - Quotex")
 st.write("Conéctate para analizar el mercado de opciones binarias en tiempo real.")
 
-# Panel lateral para credenciales y parámetros
 st.sidebar.header("Configuración de Cuenta")
 email = st.sidebar.text_input("Correo de Quotex")
 password = st.sidebar.text_input("Contraseña", type="password", value="")
 activo = st.sidebar.selectbox("Activo a operar", ["EURUSD", "GBPUSD", "EURUSD_otc", "XAUUSD_otc"])
 
-# Inicializar variables de estado
 if "conectado" not in st.session_state:
     st.session_state.conectado = False
 
-# Lógica de conexión segura
 if st.sidebar.button("Conectar al Bróker"):
     if not email or not password:
         st.warning("⚠️ Por favor ingresa tu correo y contraseña en la barra lateral.")
     else:
-        with st.spinner("🔄 Conectando con Quotex (iniciando navegador oculto)..."):
+        with st.spinner("🔄 Conectando con Quotex en la nube..."):
             
             async def test_conexion():
                 try:
                     from quotexpy import Quotex
-                    client = Quotex(email=email, password=password)
+                    
+                    # Inicializar el cliente forzando el modo headless para servidores cloud
+                    client = Quotex(email=email, password=password, headless=True)
+                    
                     check, reason = await client.connect()
                     return check, reason, client
                 except Exception as e:
@@ -93,7 +86,6 @@ if st.sidebar.button("Conectar al Bróker"):
             else:
                 st.error(f"❌ Error al conectar: {mensaje}")
 
-# Panel principal una vez conectado
 if st.session_state.get("conectado", False):
     st.info(f"🟢 Sesión activa para el activo: **{activo}**")
     
@@ -112,7 +104,6 @@ if st.session_state.get("conectado", False):
 
             if candles_data:
                 df = pd.DataFrame(candles_data)
-                
                 df['EMA_5'] = df['close'].ewm(span=5, adjust=False).mean()
                 df['EMA_20'] = df['close'].ewm(span=20, adjust=False).mean()
                 
@@ -124,10 +115,8 @@ if st.session_state.get("conectado", False):
                 
                 if ema5_val > ema20_val:
                     st.markdown("### 🟢 SEÑAL SUGERIDA: **CALL (COMPRA / SUBIR)**")
-                    st.info("La media rápida está por encima de la lenta.")
                 else:
                     st.markdown("### 🔴 SEÑAL SUGERIDA: **PUT (VENTA / BAJAR)**")
-                    st.warning("La media rápida está por debajo de la lenta.")
                 
                 with st.expander("Ver histórico de precios recientes"):
                     st.dataframe(df[['time', 'close', 'EMA_5', 'EMA_20']].tail(10))
