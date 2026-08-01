@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. Inyectar Estilos CSS Futuristas y componentes de JavaScript para el Portapapeles
+# 2. Inyectar Estilos CSS Futuristas
 st.markdown("""
 <style>
     .stApp {
@@ -181,6 +181,9 @@ st.markdown("""
 if "historial_app" not in st.session_state:
     st.session_state.historial_app = []
 
+if "ultimo_resultado" not in st.session_state:
+    st.session_state.ultimo_resultado = None
+
 # Cabecera
 st.markdown("""
 <div class="cyber-header">
@@ -221,6 +224,7 @@ temporalidad = st.sidebar.selectbox("Temporalidad de las Velas", ["1m", "5m", "1
 st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Limpiar Historial de Señales"):
     st.session_state.historial_app = []
+    st.session_state.ultimo_resultado = None
     st.sidebar.success("¡Historial reiniciado!")
 
 info_actual = activos_info[activo_seleccionado]
@@ -330,85 +334,104 @@ if st.sidebar.button("🚀 INICIAR ESCANEO MULTIMODAL SIMULTÁNEO"):
                                 "Resultado": res_parcial
                             })
 
-                total_guardadas = len(st.session_state.historial_app)
-                wins_guardadas = len([s for s in st.session_state.historial_app if "WIN" in s["Resultado"]])
-                winrate_propio = (wins_guardadas / total_guardadas * 100) if total_guardadas > 0 else 0.0
-
-                # Métricas superiores
-                col1, col2, col3, col4, col5 = st.columns(5)
-                col1.metric("Precio Actual", f"{precio_actual:.5f}")
-                col2.metric("EMA 5 / 20", f"{ema5_val:.4f} / {ema20_val:.4f}")
-                col3.metric("RSI (14)", f"{rsi_val:.1f}")
-                col4.metric("WinRate Global", f"{winrate_propio:.1f}%")
-                col5.metric("Hora (UTC-3)", hora_actual_str)
-                
-                st.markdown("---")
-                st.subheader(f"⚡ Resultados Simultáneos para: {activo_seleccionado}")
-                
-                # Visualización en 3 columnas para los 3 modos al mismo tiempo con Botón de Clip para copiar
-                col_m1, col_m2, col_m3 = st.columns(3)
-                
-                with col_m1:
-                    st.markdown("### 🛡️ Modo Conservador")
-                    if senal_conservadora == "CALL":
-                        st.markdown(f'<div class="success-box"><h4 style="color:#00ff80; margin:0;">🟢 CALL</h4></div>', unsafe_allow_html=True)
-                    elif senal_conservadora == "PUT":
-                        st.markdown(f'<div class="error-box"><h4 style="color:#ff4b4b; margin:0;">🔴 PUT</h4></div>', unsafe_allow_html=True)
-                    else:
-                        st.markdown(f'<div class="neutral-box"><h4 style="color:#8a99ad; margin:0;">⚪ NEUTRAL</h4></div>', unsafe_allow_html=True)
-                    
-                    c_col1, c_col2 = st.columns([3, 1])
-                    c_col1.markdown(f"🕒 **Entrada:** `{hora_entrada_str}`")
-                    if c_col2.button("📋", key="clip_cons", help="Copiar hora de entrada"):
-                        st.code(hora_entrada_str, language=None)
-                        st.toast(f"¡Hora {hora_entrada_str} copiada al portapapeles!", icon="📋")
-
-                with col_m2:
-                    st.markdown("### ⚖️ Modo Moderado")
-                    if senal_moderada == "CALL":
-                        st.markdown(f'<div class="success-box"><h4 style="color:#00ff80; margin:0;">🟢 CALL</h4></div>', unsafe_allow_html=True)
-                    elif senal_moderada == "PUT":
-                        st.markdown(f'<div class="error-box"><h4 style="color:#ff4b4b; margin:0;">🔴 PUT</h4></div>', unsafe_allow_html=True)
-                    else:
-                        st.markdown(f'<div class="neutral-box"><h4 style="color:#8a99ad; margin:0;">⚪ NEUTRAL</h4></div>', unsafe_allow_html=True)
-                    
-                    m_col1, m_col2 = st.columns([3, 1])
-                    m_col1.markdown(f"🕒 **Entrada:** `{hora_entrada_str}`")
-                    if m_col2.button("📋", key="clip_mod", help="Copiar hora de entrada"):
-                        st.code(hora_entrada_str, language=None)
-                        st.toast(f"¡Hora {hora_entrada_str} copiada al portapapeles!", icon="📋")
-
-                with col_m3:
-                    st.markdown("### 🚀 Modo Agresivo")
-                    if senal_agresiva == "CALL":
-                        st.markdown(f'<div class="success-box"><h4 style="color:#00ff80; margin:0;">🟢 CALL</h4></div>', unsafe_allow_html=True)
-                    elif senal_agresiva == "PUT":
-                        st.markdown(f'<div class="error-box"><h4 style="color:#ff4b4b; margin:0;">🔴 PUT</h4></div>', unsafe_allow_html=True)
-                    else:
-                        st.markdown(f'<div class="neutral-box"><h4 style="color:#8a99ad; margin:0;">⚪ NEUTRAL</h4></div>', unsafe_allow_html=True)
-                    
-                    a_col1, a_col2 = st.columns([3, 1])
-                    a_col1.markdown(f"🕒 **Entrada:** `{hora_entrada_str}`")
-                    if a_col2.button("📋", key="clip_agre", help="Copiar hora de entrada"):
-                        st.code(hora_entrada_str, language=None)
-                        st.toast(f"¡Hora {hora_entrada_str} copiada al portapapeles!", icon="📋")
-
-                st.markdown("---")
-                st.subheader("📜 Historial de Señales Multimodal")
-                
-                if len(st.session_state.historial_app) > 0:
-                    df_app_hist = pd.DataFrame(st.session_state.historial_app)[["Hora", "Modo", "Activo", "Señal", "Entrada", "Resultado"]]
-                    st.dataframe(df_app_hist.iloc[::-1], use_container_width=True)
-                    st.info(f"📊 Estadísticas Generales: {total_guardadas} señales emitidas | {wins_guardadas} aciertos | WinRate: **{winrate_propio:.1f}%**")
-                else:
-                    st.info("Aún no se han registrado señales en esta sesión.")
-
-                st.markdown("---")
-                st.subheader("📊 Gráfica de Precios y Bollinger")
-                df_chart = df[['Close', 'BB_Upper', 'BB_Middle', 'BB_Lower']].tail(50)
-                st.line_chart(df_chart)
+                # Guardar el estado actual en la sesión para que persista al hacer clic en los clips
+                st.session_state.ultimo_resultado = {
+                    "activo": activo_seleccionado,
+                    "precio_actual": precio_actual,
+                    "ema5_val": ema5_val,
+                    "ema20_val": ema20_val,
+                    "rsi_val": rsi_val,
+                    "hora_actual_str": hora_actual_str,
+                    "hora_entrada_str": hora_entrada_str,
+                    "senal_conservadora": senal_conservadora,
+                    "senal_moderada": senal_moderada,
+                    "senal_agresiva": senal_agresiva,
+                    "df_chart": df[['Close', 'BB_Upper', 'BB_Middle', 'BB_Lower']].tail(50)
+                }
 
         except Exception as e:
             st.error(f"Error crítico: {e}")
+
+# --- RENDERIZADO DE RESULTADOS (Persistente con Session State) ---
+if st.session_state.ultimo_resultado is not None:
+    res = st.session_state.ultimo_resultado
+    
+    total_guardadas = len(st.session_state.historial_app)
+    wins_guardadas = len([s for s in st.session_state.historial_app if "WIN" in s["Resultado"]])
+    winrate_propio = (wins_guardadas / total_guardadas * 100) if total_guardadas > 0 else 0.0
+
+    # Métricas superiores
+    col1, col2, col3, col4, col5 = st.columns(5)
+    col1.metric("Precio Actual", f"{res['precio_actual']:.5f}")
+    col2.metric("EMA 5 / 20", f"{res['ema5_val']:.4f} / {res['ema20_val']:.4f}")
+    col3.metric("RSI (14)", f"{res['rsi_val']:.1f}")
+    col4.metric("WinRate Global", f"{winrate_propio:.1f}%")
+    col5.metric("Hora (UTC-3)", res['hora_actual_str'])
+    
+    st.markdown("---")
+    st.subheader(f"⚡ Resultados Simultáneos para: {res['activo']}")
+    
+    # Visualización en 3 columnas para los 3 modos al mismo tiempo con Botón de Clip para copiar
+    col_m1, col_m2, col_m3 = st.columns(3)
+    
+    with col_m1:
+        st.markdown("### 🛡️ Modo Conservador")
+        if res['senal_conservadora'] == "CALL":
+            st.markdown(f'<div class="success-box"><h4 style="color:#00ff80; margin:0;">🟢 CALL</h4></div>', unsafe_allow_html=True)
+        elif res['senal_conservadora'] == "PUT":
+            st.markdown(f'<div class="error-box"><h4 style="color:#ff4b4b; margin:0;">🔴 PUT</h4></div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="neutral-box"><h4 style="color:#8a99ad; margin:0;">⚪ NEUTRAL</h4></div>', unsafe_allow_html=True)
+        
+        c_col1, c_col2 = st.columns([3, 1])
+        c_col1.markdown(f"🕒 **Entrada:** `{res['hora_entrada_str']}`")
+        if c_col2.button("📋", key="clip_cons", help="Copiar hora de entrada"):
+            st.code(res['hora_entrada_str'], language=None)
+            st.toast(f"¡Hora {res['hora_entrada_str']} copiada al portapapeles!", icon="📋")
+
+    with col_m2:
+        st.markdown("### ⚖️ Modo Moderado")
+        if res['senal_moderada'] == "CALL":
+            st.markdown(f'<div class="success-box"><h4 style="color:#00ff80; margin:0;">🟢 CALL</h4></div>', unsafe_allow_html=True)
+        elif res['senal_moderada'] == "PUT":
+            st.markdown(f'<div class="error-box"><h4 style="color:#ff4b4b; margin:0;">🔴 PUT</h4></div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="neutral-box"><h4 style="color:#8a99ad; margin:0;">⚪ NEUTRAL</h4></div>', unsafe_allow_html=True)
+        
+        m_col1, m_col2 = st.columns([3, 1])
+        m_col1.markdown(f"🕒 **Entrada:** `{res['hora_entrada_str']}`")
+        if m_col2.button("📋", key="clip_mod", help="Copiar hora de entrada"):
+            st.code(res['hora_entrada_str'], language=None)
+            st.toast(f"¡Hora {res['hora_entrada_str']} copiada al portapapeles!", icon="📋")
+
+    with col_m3:
+        st.markdown("### 🚀 Modo Agresivo")
+        if res['senal_agresiva'] == "CALL":
+            st.markdown(f'<div class="success-box"><h4 style="color:#00ff80; margin:0;">🟢 CALL</h4></div>', unsafe_allow_html=True)
+        elif res['senal_agresiva'] == "PUT":
+            st.markdown(f'<div class="error-box"><h4 style="color:#ff4b4b; margin:0;">🔴 PUT</h4></div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="neutral-box"><h4 style="color:#8a99ad; margin:0;">⚪ NEUTRAL</h4></div>', unsafe_allow_html=True)
+        
+        a_col1, a_col2 = st.columns([3, 1])
+        a_col1.markdown(f"🕒 **Entrada:** `{res['hora_entrada_str']}`")
+        if a_col2.button("📋", key="clip_agre", help="Copiar hora de entrada"):
+            st.code(res['hora_entrada_str'], language=None)
+            st.toast(f"¡Hora {res['hora_entrada_str']} copiada al portapapeles!", icon="📋")
+
+    st.markdown("---")
+    st.subheader("📜 Historial de Señales Multimodal")
+    
+    if len(st.session_state.historial_app) > 0:
+        df_app_hist = pd.DataFrame(st.session_state.historial_app)[["Hora", "Modo", "Activo", "Señal", "Entrada", "Resultado"]]
+        st.dataframe(df_app_hist.iloc[::-1], use_container_width=True)
+        st.info(f"📊 Estadísticas Generales: {total_guardadas} señales emitidas | {wins_guardadas} aciertos | WinRate: **{winrate_propio:.1f}%**")
+    else:
+        st.info("Aún no se han registrado señales en esta sesión.")
+
+    st.markdown("---")
+    st.subheader("📊 Gráfica de Precios y Bollinger")
+    st.line_chart(res['df_chart'])
+
 else:
     st.info("👈 Selecciona tu activo y haz clic en **INICIAR ESCANEO MULTIMODAL SIMULTÁNEO** para ver los 3 resultados al mismo tiempo.")
