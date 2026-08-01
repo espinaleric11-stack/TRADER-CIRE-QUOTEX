@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 # 1. Configuración de la interfaz
 st.set_page_config(
-    page_title="CyberTrader // Configurable Terminal (UTC-3)", 
+    page_title="CyberTrader // Multi-Strictness Terminal (UTC-3)", 
     page_icon="⚡", 
     layout="wide"
 )
@@ -167,6 +167,13 @@ st.markdown("""
         border-radius: 8px;
         margin-bottom: 15px;
     }
+    .neutral-box {
+        background: rgba(138, 153, 173, 0.1);
+        border-left: 4px solid #8a99ad;
+        padding: 16px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -181,7 +188,7 @@ st.markdown("""
         <span class="cyber-icon">⚡</span>
         <div>
             <p class="cyber-title-text">CYBER-TRADER</p>
-            <p class="cyber-subtitle">Configurable Quantum Engine & Signal Tracker</p>
+            <p class="cyber-subtitle">Multi-Strictness Quantum Engine & Signal Tracker</p>
         </div>
     </div>
     <div class="utc-badge">
@@ -212,14 +219,6 @@ activo_seleccionado = st.sidebar.selectbox("Seleccionar Activo / Par", list(acti
 temporalidad = st.sidebar.selectbox("Temporalidad de las Velas", ["1m", "5m", "15m", "1h", "1d"])
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("🛡️ Nivel de Estrictez de la App")
-nivel_estrictez = st.sidebar.selectbox(
-    "Selecciona la exigencia de los filtros",
-    ["Conservador (Ultra Seguro / WinRate Alto)", "Moderado (Equilibrado)", "Agresivo (Mayor Frecuencia)"],
-    index=0
-)
-
-st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Limpiar Historial de Señales"):
     st.session_state.historial_app = []
     st.sidebar.success("¡Historial reiniciado!")
@@ -242,8 +241,8 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
-    with st.spinner(f"Escaneando {activo_seleccionado} con nivel [{nivel_estrictez}]..."):
+if st.sidebar.button("🚀 INICIAR ESCANEO MULTIMODAL SIMULTÁNEO"):
+    with st.spinner(f"Escaneando {activo_seleccionado} en los 3 niveles de estrictez..."):
         try:
             import yfinance as yf
             
@@ -299,97 +298,92 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
                 hora_actual_str = ahora_utc3.strftime("%H:%M:%S")
                 hora_entrada_str = siguiente_vela_dt.strftime("%H:%M:%S")
                 
-                # --- MOTOR DE DECISIÓN ADAPTATIVO SEGÚN EL NIVEL DE ESTRICTEZ ---
-                if "Conservador" in nivel_estrictez:
-                    tendencia_ok_call = (ema5_val > ema20_val)
-                    tendencia_ok_put = (ema5_val < ema20_val)
-                    rsi_ok_call = rsi_val <= 40
-                    rsi_ok_put = rsi_val >= 60
-                    bb_ok_call = precio_actual <= (bb_lower + (atr_val * 0.3))
-                    bb_ok_put = precio_actual >= (bb_upper - (atr_val * 0.3))
-                elif "Moderado" in nivel_estrictez:
-                    tendencia_ok_call = (ema5_val > ema20_val)
-                    tendencia_ok_put = (ema5_val < ema20_val)
-                    rsi_ok_call = rsi_val <= 48
-                    rsi_ok_put = rsi_val >= 52
-                    bb_ok_call = precio_actual <= bb_middle
-                    bb_ok_put = precio_actual >= bb_middle
-                else:
-                    tendencia_ok_call = (ema5_val >= ema20_val)
-                    tendencia_ok_put = (ema5_val <= ema20_val)
-                    rsi_ok_call = rsi_val < 55
-                    rsi_ok_put = rsi_val > 45
-                    bb_ok_call = True
-                    bb_ok_put = True
+                # --- EVALUACIÓN 1: CONSERVADOR ---
+                c_call = (ema5_val > ema20_val) and (rsi_val <= 40) and (precio_actual <= (bb_lower + (atr_val * 0.3)))
+                c_put = (ema5_val < ema20_val) and (rsi_val >= 60) and (precio_actual >= (bb_upper - (atr_val * 0.3)))
+                senal_conservadora = "CALL" if c_call else ("PUT" if c_put else None)
 
-                es_call = tendencia_ok_call and rsi_ok_call and bb_ok_call
-                es_put = tendencia_ok_put and rsi_ok_put and bb_ok_put
-                
-                nueva_senal = "CALL" if es_call else ("PUT" if es_put else None)
-                
-                if nueva_senal:
-                    id_registro = f"{activo_seleccionado}-{hora_entrada_str}"
-                    if not any(s.get("id") == id_registro for s in st.session_state.historial_app):
-                        penultimo_cierre = float(df['Close'].iloc[-2])
-                        res_parcial = "WIN 🟢" if (nueva_senal == "CALL" and precio_actual > penultimo_cierre) or (nueva_senal == "PUT" and precio_actual < penultimo_cierre) else "LOSS 🔴"
-                            
-                        st.session_state.historial_app.append({
-                            "id": id_registro,
-                            "Hora": hora_actual_str,
-                            "Activo": activo_seleccionado,
-                            "Señal": nueva_senal,
-                            "Entrada": f"{precio_actual:.5f}",
-                            "Resultado": res_parcial
-                        })
+                # --- EVALUACIÓN 2: MODERADO ---
+                m_call = (ema5_val > ema20_val) and (rsi_val <= 48) and (precio_actual <= bb_middle)
+                m_put = (ema5_val < ema20_val) and (rsi_val >= 52) and (precio_actual >= bb_middle)
+                senal_moderada = "CALL" if m_call else ("PUT" if m_put else None)
+
+                # --- EVALUACIÓN 3: AGRESIVO ---
+                a_call = (ema5_val >= ema20_val) and (rsi_val < 55)
+                a_put = (ema5_val <= ema20_val) and (rsi_val > 45)
+                senal_agresiva = "CALL" if a_call else ("PUT" if a_put else None)
+
+                # Guardar en historial general si alguna emite señal nueva
+                penultimo_cierre = float(df['Close'].iloc[-2])
+                for modo_nombre, s_val in [("Conservador", senal_conservadora), ("Moderado", senal_moderada), ("Agresivo", senal_agresiva)]:
+                    if s_val:
+                        id_registro = f"{activo_seleccionado}-{modo_nombre}-{hora_entrada_str}"
+                        if not any(s.get("id") == id_registro for s in st.session_state.historial_app):
+                            res_parcial = "WIN 🟢" if (s_val == "CALL" and precio_actual > penultimo_cierre) or (s_val == "PUT" and precio_actual < penultimo_cierre) else "LOSS 🔴"
+                            st.session_state.historial_app.append({
+                                "id": id_registro,
+                                "Hora": hora_actual_str,
+                                "Modo": modo_nombre,
+                                "Activo": activo_seleccionado,
+                                "Señal": s_val,
+                                "Entrada": f"{precio_actual:.5f}",
+                                "Resultado": res_parcial
+                            })
 
                 total_guardadas = len(st.session_state.historial_app)
                 wins_guardadas = len([s for s in st.session_state.historial_app if "WIN" in s["Resultado"]])
                 winrate_propio = (wins_guardadas / total_guardadas * 100) if total_guardadas > 0 else 0.0
 
-                # Métricas
+                # Métricas superiores
                 col1, col2, col3, col4, col5 = st.columns(5)
                 col1.metric("Precio Actual", f"{precio_actual:.5f}")
                 col2.metric("EMA 5 / 20", f"{ema5_val:.4f} / {ema20_val:.4f}")
                 col3.metric("RSI (14)", f"{rsi_val:.1f}")
-                col4.metric("WinRate App", f"{winrate_propio:.1f}%")
+                col4.metric("WinRate Global", f"{winrate_propio:.1f}%")
                 col5.metric("Hora (UTC-3)", hora_actual_str)
                 
                 st.markdown("---")
-                st.subheader(f"🎯 Diagnóstico para: {activo_seleccionado} [{nivel_estrictez.split()[0]}]")
+                st.subheader(f"⚡ Resultados Simultáneos para: {activo_seleccionado}")
                 
-                if es_call:
-                    st.markdown(f"""
-                    <div class="success-box">
-                        <h3 style="color: #00ff80 !important; margin:0;">🟢 SEÑAL VÁLIDA: CALL (COMPRA)</h3>
-                        <p style="margin: 5px 0 0 0; font-size:15px;">🕒 <b>Hora de entrada exacta:</b> {hora_entrada_str} UTC-3</p>
-                        <p style="margin: 2px 0 0 0; color: #b0c4de; font-size: 13px;">Condiciones superadas bajo el perfil configurado.</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                elif es_put:
-                    st.markdown(f"""
-                    <div class="error-box">
-                        <h3 style="color: #ff4b4b !important; margin:0;">🔴 SEÑAL VÁLIDA: PUT (VENTA)</h3>
-                        <p style="margin: 5px 0 0 0; font-size:15px;">🕒 <b>Hora de entrada exacta:</b> {hora_entrada_str} UTC-3</p>
-                        <p style="margin: 2px 0 0 0; color: #b0c4de; font-size: 13px;">Condiciones superadas bajo el perfil configurado.</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                else:
-                    st.warning(f"### ⚪ FILTRADO: MERCADO NEUTRAL\nBajo el modo **{nivel_estrictez}**, el sistema no encontró una confluencia exacta en este momento para proteger tu capital.")
+                # Visualización en 3 columnas para los 3 modos al mismo tiempo
+                col_m1, col_m2, col_m3 = st.columns(3)
                 
+                with col_m1:
+                    st.markdown("### 🛡️ Modo Conservador")
+                    if senal_conservadora == "CALL":
+                        st.markdown(f'<div class="success-box"><h4 style="color:#00ff80; margin:0;">🟢 CALL</h4><p style="margin:5px 0 0 0; font-size:13px;">Entrada: {hora_entrada_str}</p></div>', unsafe_allow_html=True)
+                    elif senal_conservadora == "PUT":
+                        st.markdown(f'<div class="error-box"><h4 style="color:#ff4b4b; margin:0;">🔴 PUT</h4><p style="margin:5px 0 0 0; font-size:13px;">Entrada: {hora_entrada_str}</p></div>', unsafe_allow_html=True)
+                    else:
+                        st.markdown('<div class="neutral-box"><h4 style="color:#8a99ad; margin:0;">⚪ NEUTRAL</h4><p style="margin:5px 0 0 0; font-size:13px;">Sin confluencia estricta</p></div>', unsafe_allow_html=True)
+
+                with col_m2:
+                    st.markdown("### ⚖️ Modo Moderado")
+                    if senal_moderada == "CALL":
+                        st.markdown(f'<div class="success-box"><h4 style="color:#00ff80; margin:0;">🟢 CALL</h4><p style="margin:5px 0 0 0; font-size:13px;">Entrada: {hora_entrada_str}</p></div>', unsafe_allow_html=True)
+                    elif senal_moderada == "PUT":
+                        st.markdown(f'<div class="error-box"><h4 style="color:#ff4b4b; margin:0;">🔴 PUT</h4><p style="margin:5px 0 0 0; font-size:13px;">Entrada: {hora_entrada_str}</p></div>', unsafe_allow_html=True)
+                    else:
+                        st.markdown('<div class="neutral-box"><h4 style="color:#8a99ad; margin:0;">⚪ NEUTRAL</h4><p style="margin:5px 0 0 0; font-size:13px;">Esperando equilibrio</p></div>', unsafe_allow_html=True)
+
+                with col_m3:
+                    st.markdown("### 🚀 Modo Agresivo")
+                    if senal_agresiva == "CALL":
+                        st.markdown(f'<div class="success-box"><h4 style="color:#00ff80; margin:0;">🟢 CALL</h4><p style="margin:5px 0 0 0; font-size:13px;">Entrada: {hora_entrada_str}</p></div>', unsafe_allow_html=True)
+                    elif senal_agresiva == "PUT":
+                        st.markdown(f'<div class="error-box"><h4 style="color:#ff4b4b; margin:0;">🔴 PUT</h4><p style="margin:5px 0 0 0; font-size:13px;">Entrada: {hora_entrada_str}</p></div>', unsafe_allow_html=True)
+                    else:
+                        st.markdown('<div class="neutral-box"><h4 style="color:#8a99ad; margin:0;">⚪ NEUTRAL</h4><p style="margin:5px 0 0 0; font-size:13px;">Sin tendencia clara</p></div>', unsafe_allow_html=True)
+
                 st.markdown("---")
-                st.subheader("📜 Historial de Señales Emitidas")
+                st.subheader("📜 Historial de Señales Multimodal")
                 
                 if len(st.session_state.historial_app) > 0:
-                    df_app_hist = pd.DataFrame(st.session_state.historial_app)[["Hora", "Activo", "Señal", "Entrada", "Resultado"]]
+                    df_app_hist = pd.DataFrame(st.session_state.historial_app)[["Hora", "Modo", "Activo", "Señal", "Entrada", "Resultado"]]
                     st.dataframe(df_app_hist.iloc[::-1], use_container_width=True)
-                    st.info(f"📊 Estadísticas: {total_guardadas} señales emitidas | {wins_guardadas} aciertos | Efectividad: **{winrate_propio:.1f}%**")
+                    st.info(f"📊 Estadísticas Generales: {total_guardadas} señales emitidas | {wins_guardadas} aciertos | WinRate: **{winrate_propio:.1f}%**")
                 else:
-                    st.info("Aún no se han emitido señales en esta sesión con el nivel de estrictez seleccionado.")
-                
-                with st.expander("🔍 Ver detalles técnicos"):
-                    st.write(f"- **Modo de Estrictez Activo:** {nivel_estrictez}")
-                    st.write(f"- **RSI Actual:** {rsi_val:.1f}")
-                    st.write(f"- **Volatilidad ATR:** {atr_val:.5f}")
+                    st.info("Aún no se han registrado señales en esta sesión.")
 
                 st.markdown("---")
                 st.subheader("📊 Gráfica de Precios y Bollinger")
@@ -399,4 +393,4 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
         except Exception as e:
             st.error(f"Error crítico: {e}")
 else:
-    st.info("👈 Configura tu nivel de estrictez en la barra lateral y haz clic en **INICIAR ESCANEO CUÁNTICO**.")
+    st.info("👈 Selecciona tu activo y haz clic en **INICIAR ESCANEO MULTIMODAL SIMULTÁNEO** para ver los 3 resultados al mismo tiempo.")
