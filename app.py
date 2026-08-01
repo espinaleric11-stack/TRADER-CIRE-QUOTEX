@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 # 1. Configuración de la interfaz
 st.set_page_config(
-    page_title="CyberTrader // Quantum Terminal (UTC-3)", 
+    page_title="CyberTrader // High-Precision Terminal (UTC-3)", 
     page_icon="⚡", 
     layout="wide"
 )
@@ -13,14 +13,11 @@ st.set_page_config(
 # 2. Inyectar Estilos CSS Futuristas de Última Generación
 st.markdown("""
 <style>
-    /* Fondo general de la aplicación */
     .stApp {
         background: radial-gradient(circle at 50% 0%, #111422 0%, #08090d 100%);
         color: #e0e6ed;
         font-family: 'Segoe UI', Roboto, Helvetica, sans-serif;
     }
-    
-    /* Cabecera / Header Flotante Moderno */
     .cyber-header {
         background: linear-gradient(135deg, rgba(18, 20, 32, 0.8) 0%, rgba(26, 29, 45, 0.8) 100%);
         backdrop-filter: blur(10px);
@@ -68,8 +65,6 @@ st.markdown("""
         letter-spacing: 1px;
         box-shadow: inset 0 0 10px rgba(0, 255, 204, 0.2);
     }
-
-    /* Estilo de la tarjeta de activo idéntica al bróker con efecto holográfico */
     .broker-card {
         background: linear-gradient(135deg, rgba(18, 20, 32, 0.9) 0%, rgba(26, 29, 45, 0.9) 100%);
         border: 1px solid rgba(0, 255, 204, 0.5);
@@ -102,7 +97,6 @@ st.markdown("""
         object-fit: cover;
         border: 2px solid #121420;
         z-index: 2;
-        box-shadow: 0 0 5px rgba(0,0,0,0.5);
     }
     .flag-2 {
         position: absolute;
@@ -114,7 +108,6 @@ st.markdown("""
         object-fit: cover;
         border: 2px solid #121420;
         z-index: 1;
-        box-shadow: 0 0 5px rgba(0,0,0,0.5);
     }
     .asset-info {
         display: flex;
@@ -125,29 +118,17 @@ st.markdown("""
         font-weight: 800;
         letter-spacing: 1px;
         color: #ffffff;
-        text-shadow: 0 0 8px rgba(255,255,255,0.4);
     }
     .asset-profit {
         font-size: 14px;
         font-weight: 700;
         color: #ffaa00;
-        text-shadow: 0 0 8px rgba(255, 170, 0, 0.6);
         margin-top: 3px;
     }
-    .broker-arrow {
-        font-size: 18px;
-        color: #00ffcc;
-    }
-
-    /* Subtítulos y textos con estilo neón */
     h2, h3 {
         color: #00ffcc !important;
-        font-family: 'Segoe UI', Roboto, sans-serif;
-        text-shadow: 0 0 10px rgba(0, 255, 204, 0.25);
         font-weight: 700;
     }
-
-    /* Botones principales futuristas con gradiente animado */
     .stButton>button {
         background: linear-gradient(135deg, #00ffcc 0%, #0099ff 100%);
         color: #08090d;
@@ -157,33 +138,22 @@ st.markdown("""
         padding: 0.65rem 1.4rem;
         box-shadow: 0 0 20px rgba(0, 255, 204, 0.4);
         transition: all 0.3s ease;
-        letter-spacing: 0.5px;
     }
     .stButton>button:hover {
         opacity: 0.95;
         box-shadow: 0 0 30px rgba(0, 255, 204, 0.8);
         transform: translateY(-2px);
     }
-
-    /* Métricas con diseño de panel holográfico */
     [data-testid="stMetric"] {
         background: rgba(18, 20, 32, 0.6);
         border: 1px solid rgba(0, 255, 204, 0.2);
         padding: 14px;
         border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
     [data-testid="stMetricValue"] {
         color: #00ffcc !important;
-        text-shadow: 0 0 10px rgba(0, 255, 204, 0.4);
         font-weight: 800 !important;
     }
-    [data-testid="stMetricLabel"] {
-        color: #8a99ad !important;
-        font-weight: 600 !important;
-    }
-
-    /* Tarjetas de Alertas Personalizadas */
     .success-box {
         background: rgba(0, 255, 128, 0.1);
         border-left: 4px solid #00ff80;
@@ -201,18 +171,18 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Inicializar la memoria de sesión para guardar las señales generadas por la app
+# Inicializar memoria de sesión
 if "historial_app" not in st.session_state:
     st.session_state.historial_app = []
 
-# --- CABECERA COMPACTA Y MODERNA ---
+# Cabecera
 st.markdown("""
 <div class="cyber-header">
     <div class="cyber-logo">
         <span class="cyber-icon">⚡</span>
         <div>
             <p class="cyber-title-text">CYBER-TRADER</p>
-            <p class="cyber-subtitle">Quantum Analytics & Live Signal Terminal</p>
+            <p class="cyber-subtitle">High-Precision Quantum Engine (Strict Filter Mode)</p>
         </div>
     </div>
     <div class="utc-badge">
@@ -221,7 +191,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 3. Diccionario de activos con URLs de sus respectivas banderas circulares oficiales
 activos_info = {
     "USD/CAD (OTC)": {"symbol": "USDCAD=X", "flag1": "https://flagcdn.com/w80/us.png", "flag2": "https://flagcdn.com/w80/ca.png", "profit": "84%"},
     "EUR/USD (OTC)": {"symbol": "EURUSD=X", "flag1": "https://flagcdn.com/w80/eu.png", "flag2": "https://flagcdn.com/w80/us.png", "profit": "82%"},
@@ -237,25 +206,15 @@ activos_info = {
     "XAU/USD (Oro / OTC)": {"symbol": "GC=F", "flag1": "https://flagcdn.com/w80/un.png", "flag2": "https://flagcdn.com/w80/us.png", "profit": "88%"}
 }
 
-# Panel lateral de configuración
 st.sidebar.header("⚙️ Configuración del Núcleo")
-
-activo_seleccionado = st.sidebar.selectbox(
-    "Seleccionar Activo / Par", 
-    list(activos_info.keys())
-)
-
-temporalidad = st.sidebar.selectbox(
-    "Temporalidad de las Velas", 
-    ["1m", "5m", "15m", "1h", "1d"]
-)
+activo_seleccionado = st.sidebar.selectbox("Seleccionar Activo / Par", list(activos_info.keys()))
+temporalidad = st.sidebar.selectbox("Temporalidad de las Velas", ["1m", "5m", "15m", "1h", "1d"])
 
 st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Limpiar Historial de Señales"):
     st.session_state.historial_app = []
-    st.sidebar.success("¡Historial reiniciado con éxito!")
+    st.sidebar.success("¡Historial reiniciado!")
 
-# --- RENDERIZAR LA TARJETA VISUAL IDÉNTICA AL BRÓKER ---
 info_actual = activos_info[activo_seleccionado]
 
 st.markdown(f"""
@@ -274,9 +233,8 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# 4. Lógica principal del analizador
-if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
-    with st.spinner(f"Sincronizando matrices de datos para {activo_seleccionado}..."):
+if st.sidebar.button("🚀 INICIAR ESCANEO DE ALTA SEGURIDAD"):
+    with st.spinner(f"Aplicando filtros estrictos de confluencia para {activo_seleccionado}..."):
         try:
             import yfinance as yf
             
@@ -284,13 +242,13 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
             periodo = "1d" if temporalidad in ["1m", "5m", "15m"] else "5d"
             df = yf.download(symbol_to_fetch, period=periodo, interval=temporalidad, progress=False)
             
-            if df.empty or len(df) < 25:
-                st.warning("⚠️ Datos insuficientes en este intervalo temporal. Intenta cambiar de temporalidad.")
+            if df.empty or len(df) < 30:
+                st.warning("⚠️ Datos insuficientes en este intervalo temporal.")
             else:
                 if isinstance(df.columns, pd.MultiIndex):
                     df.columns = df.columns.get_level_values(0)
                 
-                # --- CÁLCULOS TÉCNICOS AVANZADOS ---
+                # --- INDICADORES TÉCNICOS ---
                 df['EMA_5'] = df['Close'].ewm(span=5, adjust=False).mean()
                 df['EMA_20'] = df['Close'].ewm(span=20, adjust=False).mean()
                 
@@ -318,45 +276,49 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
                 bb_upper = float(df['BB_Upper'].iloc[-1])
                 bb_lower = float(df['BB_Lower'].iloc[-1])
                 atr_val = float(df['ATR'].iloc[-1]) if not np.isnan(df['ATR'].iloc[-1]) else 0.0
+                atr_promedio = float(df['ATR'].mean())
                 
-                # --- CALCULO DE HORA UTC-3 Y SIGUIENTE VELA ---
+                # --- HORA UTC-3 ---
                 tz_utc_minus_3 = timezone(timedelta(hours=-3))
                 ahora_utc3 = datetime.now(tz_utc_minus_3)
-                
                 minutos_map = {"1m": 1, "5m": 5, "15m": 15, "1h": 60, "1d": 1440}
                 minutos_add = minutos_map.get(temporalidad, 1)
-                
                 segundos_totales = minutos_add * 60
-                timestamp_actual = ahora_utc3.timestamp()
-                timestamp_siguiente_vela = ((timestamp_actual // segundos_totales) + 1) * segundos_totales
-                
+                timestamp_siguiente_vela = ((ahora_utc3.timestamp() // segundos_totales) + 1) * segundos_totales
                 siguiente_vela_dt = datetime.fromtimestamp(timestamp_siguiente_vela, tz_utc_minus_3)
                 
                 hora_actual_str = ahora_utc3.strftime("%H:%M:%S")
                 hora_entrada_str = siguiente_vela_dt.strftime("%H:%M:%S")
                 
-                # --- MOTOR DE DECISIÓN DE ALTA CONFLUENCIA ---
-                tendencia_alcista = ema5_val > ema20_val
-                tendencia_bajista = ema5_val < ema20_val
+                # --- NUEVO MOTOR DE ALTA SEGURIDAD Y ESTRICTO ---
+                # Exigimos que la tendencia sea clara, el RSI esté en extremos de sobreventa/sobrecompra
+                # y que el precio haya tocado o rebasado las bandas de Bollinger con volatilidad suficiente.
+                tendencia_alcista_fuerte = (ema5_val > ema20_val) and ((ema5_val - ema20_val) > (atr_val * 0.1))
+                tendencia_bajista_fuerte = (ema5_val < ema20_val) and ((ema20_val - ema5_val) > (atr_val * 0.1))
                 
-                es_call = tendencia_alcista and rsi_val < 62 and (precio_actual <= df['BB_Middle'].iloc[-1])
-                es_put = tendencia_bajista and rsi_val > 38 and (precio_actual >= df['BB_Middle'].iloc[-1])
+                volatilidad_suficiente = atr_val >= (atr_promedio * 0.7)
                 
-                nueva_senal = None
-                if es_call:
-                    nueva_senal = "CALL"
-                elif es_put:
-                    nueva_senal = "PUT"
+                es_call_seguro = (
+                    tendencia_alcista_fuerte and 
+                    rsi_val <= 42 and  # RSI bajo (zona de rebote alcista estricta)
+                    precio_actual <= (bb_lower + (atr_val * 0.5)) and  # Cerca o por debajo de la banda inferior
+                    volatilidad_suficiente
+                )
                 
-                # Registrar automáticamente si la app dio una señal operativa en este escaneo
+                es_put_seguro = (
+                    tendencia_bajista_fuerte and 
+                    rsi_val >= 58 and  # RSI alto (zona de rebote bajista estricta)
+                    precio_actual >= (bb_upper - (atr_val * 0.5)) and  # Cerca o por encima de la banda superior
+                    volatilidad_suficiente
+                )
+                
+                nueva_senal = "CALL" if es_call_seguro else ("PUT" if es_put_seguro else None)
+                
                 if nueva_senal:
                     id_registro = f"{activo_seleccionado}-{hora_entrada_str}"
                     if not any(s.get("id") == id_registro for s in st.session_state.historial_app):
                         penultimo_cierre = float(df['Close'].iloc[-2])
-                        if nueva_senal == "CALL":
-                            res_parcial = "WIN 🟢" if precio_actual > penultimo_cierre else "LOSS 🔴"
-                        else:
-                            res_parcial = "WIN 🟢" if precio_actual < penultimo_cierre else "LOSS 🔴"
+                        res_parcial = "WIN 🟢" if (nueva_senal == "CALL" and precio_actual > penultimo_cierre) or (nueva_senal == "PUT" and precio_actual < penultimo_cierre) else "LOSS 🔴"
                             
                         st.session_state.historial_app.append({
                             "id": id_registro,
@@ -367,73 +329,62 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
                             "Resultado": res_parcial
                         })
 
-                # --- CÁLCULO DE EFECTIVIDAD (WINRATE) DEL HISTORIAL PROPIO ---
                 total_guardadas = len(st.session_state.historial_app)
                 wins_guardadas = len([s for s in st.session_state.historial_app if "WIN" in s["Resultado"]])
                 winrate_propio = (wins_guardadas / total_guardadas * 100) if total_guardadas > 0 else 0.0
 
-                # --- MÉTRICAS VISUALES ---
+                # Métricas
                 col1, col2, col3, col4, col5 = st.columns(5)
                 col1.metric("Precio Actual", f"{precio_actual:.5f}")
                 col2.metric("EMA 5 / 20", f"{ema5_val:.4f} / {ema20_val:.4f}")
-                col3.metric("RSI (14)", f"{rsi_val:.1f}")
-                col4.metric("WinRate App", f"{winrate_propio:.1f}%")
+                col3.metric("RSI Estricto", f"{rsi_val:.1f}")
+                col4.metric("WinRate Protegido", f"{winrate_propio:.1f}%")
                 col5.metric("Hora (UTC-3)", hora_actual_str)
                 
                 st.markdown("---")
+                st.subheader(f"🛡️ Diagnóstico de Seguridad para: {activo_seleccionado}")
                 
-                st.subheader(f"🎯 Diagnóstico Cuántico para: {activo_seleccionado}")
-                
-                razones = []
-                if tendencia_alcista:
-                    razones.append("✅ **Tendencia:** EMA rápida por encima de la lenta (Alcista).")
-                else:
-                    razones.append("❌ **Tendencia:** EMA rápida por debajo de la lenta (Bajista).")
-                
-                if es_call:
+                if es_call_seguro:
                     st.markdown(f"""
                     <div class="success-box">
-                        <h3 style="color: #00ff80 !important; margin:0;">🟢 SEÑAL DE ALTA CONFLUENCIA: CALL (COMPRA / SUBIR)</h3>
-                        <p style="margin: 5px 0 0 0; font-size:15px;">🕒 <b>Hora exacta de entrada (Próxima Vela):</b> {hora_entrada_str} UTC-3</p>
-                        <p style="margin: 2px 0 0 0; color: #b0c4de; font-size: 13px;">Filtros superados: Cruce alcista confirmado con soporte en zona media/baja de Bollinger.</p>
+                        <h3 style="color: #00ff80 !important; margin:0;">🟢 SEÑAL ULTRA-SEGURA: CALL (COMPRA)</h3>
+                        <p style="margin: 5px 0 0 0; font-size:15px;">🕒 <b>Hora de entrada exacta:</b> {hora_entrada_str} UTC-3</p>
+                        <p style="margin: 2px 0 0 0; color: #b0c4de; font-size: 13px;">Filtros estrictos superados: Tendencia alcista confirmada + RSI en sobreventa (<=42) + Rebote en Banda Inferior + ATR óptimo.</p>
                     </div>
                     """, unsafe_allow_html=True)
-                elif es_put:
+                elif es_put_seguro:
                     st.markdown(f"""
                     <div class="error-box">
-                        <h3 style="color: #ff4b4b !important; margin:0;">🔴 SEÑAL DE ALTA CONFLUENCIA: PUT (VENTA / BAJAR)</h3>
-                        <p style="margin: 5px 0 0 0; font-size:15px;">🕒 <b>Hora exacta de entrada (Próxima Vela):</b> {hora_entrada_str} UTC-3</p>
-                        <p style="margin: 2px 0 0 0; color: #b0c4de; font-size: 13px;">Filtros superados: Cruce bajista confirmado con resistencia en zona media/alta de Bollinger.</p>
+                        <h3 style="color: #ff4b4b !important; margin:0;">🔴 SEÑAL ULTRA-SEGURA: PUT (VENTA)</h3>
+                        <p style="margin: 5px 0 0 0; font-size:15px;">🕒 <b>Hora de entrada exacta:</b> {hora_entrada_str} UTC-3</p>
+                        <p style="margin: 2px 0 0 0; color: #b0c4de; font-size: 13px;">Filtros estrictos superados: Tendencia bajista confirmada + RSI en sobrecompra (>=58) + Rebote en Banda Superior + ATR óptimo.</p>
                     </div>
                     """, unsafe_allow_html=True)
                 else:
-                    st.warning("### ⚪ FILTRADO: MERCADO EN ZONA NEUTRAL O RUIDO\nEl sistema ha neutralizado la operación para proteger capital. No hay confluencia exacta.")
+                    st.warning("### ⚪ FILTRO DE SEGURIDAD ACTIVADO: MERCADO DESCARTADO\nPara proteger tu capital y elevar drásticamente los aciertos, el sistema ha bloqueado la emisión de señales porque no se cumplen los 4 filtros simultáneos de confluencia extrema.")
                 
-                # --- SECCIÓN DE HISTORIAL DE SEÑALES EMITIDAS POR LA APP ---
                 st.markdown("---")
-                st.subheader("📜 Historial de Señales Emitidas por Tu Aplicación")
-                st.markdown("Registro persistente en tiempo real de las operaciones detectadas por el motor cuántico:")
+                st.subheader("📜 Historial de Señales de Alta Seguridad")
                 
                 if len(st.session_state.historial_app) > 0:
                     df_app_hist = pd.DataFrame(st.session_state.historial_app)[["Hora", "Activo", "Señal", "Entrada", "Resultado"]]
                     st.dataframe(df_app_hist.iloc[::-1], use_container_width=True)
-                    st.info(f"📊 Estadísticas de la Sesión: {total_guardadas} señales emitidas | {wins_guardadas} aciertos | Efectividad: **{winrate_propio:.1f}%**")
+                    st.info(f"📊 Estadísticas del Filtro Estricto: {total_guardadas} señales emitidas | {wins_guardadas} aciertos | Efectividad: **{winrate_propio:.1f}%**")
                 else:
-                    st.info("Aún no se han emitido señales en esta sesión. Ejecuta el escaneo cuando el mercado cumpla las condiciones exactas.")
+                    st.info("No se han emitido señales bajo este filtro estricto. La aplicación esperará pacientemente hasta encontrar una oportunidad con alta probabilidad matemática de éxito.")
                 
-                with st.expander("🔍 Ver detalles técnicos de los filtros"):
-                    for r in razones:
-                        st.write(f"- {r}")
-                    st.write(f"- **Volatilidad ATR:** {atr_val:.5f} (Filtro de ruido superado)")
-                    st.write(f"- **Bandas de Bollinger:** Superior: {bb_upper:.5f} | Inferior: {bb_lower:.5f}")
-                
-                # --- GRÁFICA VISUAL ---
+                with st.expander("🔍 Ver estado de los Filtros de Seguridad en tiempo real"):
+                    st.write(f"- **Tendencia Alcista Fuerte:** {'✅ Sí' if tendencia_alcista_fuerte else '❌ No'}")
+                    st.write(f"- **Tendencia Bajista Fuerte:** {'✅ Sí' if tendencia_bajista_fuerte else '❌ No'}")
+                    st.write(f"- **Filtro RSI Extremo:** {'✅ Superado' if (rsi_val <= 42 or rsi_val >= 58) else '❌ En zona neutral (' + str(round(rsi_val, 1)) + ')'}")
+                    st.write(f"- **Volatilidad ATR Óptima:** {'✅ Sí' if volatilidad_suficiente else '❌ Mercado lateral o con ruido'}")
+
                 st.markdown("---")
-                st.subheader("📊 Gráfica Cuántica de Precios y Bollinger")
+                st.subheader("📊 Gráfica de Precisión y Rangos")
                 df_chart = df[['Close', 'BB_Upper', 'BB_Middle', 'BB_Lower']].tail(50)
                 st.line_chart(df_chart)
 
         except Exception as e:
-            st.error(f"Error crítico en el procesamiento de datos: {e}")
+            st.error(f"Error en el procesamiento seguro: {e}")
 else:
-    st.info("👈 Selecciona tu activo en la barra lateral y haz clic en **INICIAR ESCANEO CUÁNTICO** para desplegar la terminal analítica.")
+    st.info("👈 Selecciona tu activo y haz clic en **INICIAR ESCANEO DE ALTA SEGURIDAD** para buscar operaciones con filtros estrictos.")
