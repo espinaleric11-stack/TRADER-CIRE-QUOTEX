@@ -5,118 +5,123 @@ from datetime import datetime, timedelta, timezone
 
 # 1. Configuración de la interfaz
 st.set_page_config(
-    page_title="CyberTrader - Analizador Avanzado con Historial Propio (UTC-3)", 
+    page_title="CyberTrader // Quantum Terminal (UTC-3)", 
     page_icon="⚡", 
     layout="wide"
 )
 
-# 2. Inyectar Estilos CSS Modernos y Cabecera Compacta
+# 2. Inyectar Estilos CSS Futuristas de Última Generación
 st.markdown("""
 <style>
     /* Fondo general de la aplicación */
     .stApp {
-        background-color: #0a0b10;
-        color: #e0e0e0;
+        background: radial-gradient(circle at 50% 0%, #111422 0%, #08090d 100%);
+        color: #e0e6ed;
+        font-family: 'Segoe UI', Roboto, Helvetica, sans-serif;
     }
     
-    /* Cabecera / Header Compacto y Moderno */
+    /* Cabecera / Header Flotante Moderno */
     .cyber-header {
-        background: linear-gradient(135deg, #121420 0%, #1a1d2d 100%);
-        border: 1px solid rgba(0, 255, 204, 0.4);
-        border-radius: 12px;
-        padding: 15px 25px;
+        background: linear-gradient(135deg, rgba(18, 20, 32, 0.8) 0%, rgba(26, 29, 45, 0.8) 100%);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(0, 255, 204, 0.3);
+        border-radius: 16px;
+        padding: 18px 28px;
         display: flex;
         align-items: center;
         justify-content: space-between;
         margin-bottom: 25px;
-        box-shadow: 0 0 20px rgba(0, 255, 204, 0.15);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
     }
     .cyber-logo {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 15px;
     }
     .cyber-icon {
-        font-size: 26px;
+        font-size: 28px;
+        filter: drop-shadow(0 0 10px rgba(0, 255, 204, 0.6));
     }
     .cyber-title-text {
-        font-size: 20px;
+        font-size: 22px;
         font-weight: 900;
-        letter-spacing: 1.5px;
+        letter-spacing: 2px;
         color: #00ffcc;
-        text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+        text-shadow: 0 0 12px rgba(0, 255, 204, 0.5);
         margin: 0;
     }
     .cyber-subtitle {
         font-size: 11px;
         color: #8a99ad;
-        letter-spacing: 0.5px;
+        letter-spacing: 1px;
         margin: 0;
         text-transform: uppercase;
     }
     .utc-badge {
         background: rgba(0, 255, 204, 0.1);
-        border: 1px solid #00ffcc;
+        border: 1px solid rgba(0, 255, 204, 0.5);
         color: #00ffcc;
-        padding: 6px 12px;
-        border-radius: 8px;
+        padding: 8px 16px;
+        border-radius: 10px;
         font-size: 12px;
         font-weight: 700;
         letter-spacing: 1px;
+        box-shadow: inset 0 0 10px rgba(0, 255, 204, 0.2);
     }
 
-    /* Estilo de la tarjeta de activo idéntica al bróker */
+    /* Estilo de la tarjeta de activo idéntica al bróker con efecto holográfico */
     .broker-card {
-        background: linear-gradient(135deg, #121420 0%, #1a1d2d 100%);
-        border: 1px solid #00ffcc;
-        border-radius: 12px;
-        padding: 12px 18px;
+        background: linear-gradient(135deg, rgba(18, 20, 32, 0.9) 0%, rgba(26, 29, 45, 0.9) 100%);
+        border: 1px solid rgba(0, 255, 204, 0.5);
+        border-radius: 14px;
+        padding: 16px 22px;
         display: flex;
         align-items: center;
         justify-content: space-between;
         color: white;
-        font-family: 'Segoe UI', Roboto, sans-serif;
-        margin-bottom: 20px;
-        box-shadow: 0 0 15px rgba(0, 255, 204, 0.2);
+        margin-bottom: 25px;
+        box-shadow: 0 0 20px rgba(0, 255, 204, 0.15);
     }
     .broker-left {
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: 18px;
     }
     .flags-container {
         position: relative;
-        width: 44px;
-        height: 34px;
+        width: 48px;
+        height: 36px;
     }
     .flag-1 {
         position: absolute;
         top: 0;
         left: 0;
-        width: 28px;
-        height: 28px;
+        width: 30px;
+        height: 30px;
         border-radius: 50%;
         object-fit: cover;
         border: 2px solid #121420;
         z-index: 2;
+        box-shadow: 0 0 5px rgba(0,0,0,0.5);
     }
     .flag-2 {
         position: absolute;
         bottom: 0;
         right: 0;
-        width: 28px;
-        height: 28px;
+        width: 30px;
+        height: 30px;
         border-radius: 50%;
         object-fit: cover;
         border: 2px solid #121420;
         z-index: 1;
+        box-shadow: 0 0 5px rgba(0,0,0,0.5);
     }
     .asset-info {
         display: flex;
         flex-direction: column;
     }
     .asset-title {
-        font-size: 18px;
+        font-size: 19px;
         font-weight: 800;
         letter-spacing: 1px;
         color: #ffffff;
@@ -126,42 +131,72 @@ st.markdown("""
         font-size: 14px;
         font-weight: 700;
         color: #ffaa00;
-        text-shadow: 0 0 6px rgba(255, 170, 0, 0.5);
-        margin-top: 2px;
+        text-shadow: 0 0 8px rgba(255, 170, 0, 0.6);
+        margin-top: 3px;
     }
     .broker-arrow {
         font-size: 18px;
         color: #00ffcc;
     }
 
-    /* Subtítulos de secciones */
+    /* Subtítulos y textos con estilo neón */
     h2, h3 {
         color: #00ffcc !important;
         font-family: 'Segoe UI', Roboto, sans-serif;
-        text-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
+        text-shadow: 0 0 10px rgba(0, 255, 204, 0.25);
+        font-weight: 700;
     }
 
-    /* Botones futuristas */
+    /* Botones principales futuristas con gradiente animado */
     .stButton>button {
-        background: linear-gradient(90deg, #00ffcc 0%, #0099ff 100%);
-        color: #0a0b10;
+        background: linear-gradient(135deg, #00ffcc 0%, #0099ff 100%);
+        color: #08090d;
         font-weight: 800;
         border: none;
-        border-radius: 8px;
-        padding: 0.6rem 1.2rem;
-        box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
-        transition: 0.3s ease;
+        border-radius: 10px;
+        padding: 0.65rem 1.4rem;
+        box-shadow: 0 0 20px rgba(0, 255, 204, 0.4);
+        transition: all 0.3s ease;
+        letter-spacing: 0.5px;
     }
     .stButton>button:hover {
-        opacity: 0.9;
-        box-shadow: 0 0 25px rgba(0, 255, 204, 0.8);
-        transform: scale(1.02);
+        opacity: 0.95;
+        box-shadow: 0 0 30px rgba(0, 255, 204, 0.8);
+        transform: translateY(-2px);
     }
 
-    /* Métricas */
+    /* Métricas con diseño de panel holográfico */
+    [data-testid="stMetric"] {
+        background: rgba(18, 20, 32, 0.6);
+        border: 1px solid rgba(0, 255, 204, 0.2);
+        padding: 14px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
     [data-testid="stMetricValue"] {
         color: #00ffcc !important;
-        text-shadow: 0 0 8px rgba(0, 255, 204, 0.4);
+        text-shadow: 0 0 10px rgba(0, 255, 204, 0.4);
+        font-weight: 800 !important;
+    }
+    [data-testid="stMetricLabel"] {
+        color: #8a99ad !important;
+        font-weight: 600 !important;
+    }
+
+    /* Tarjetas de Alertas Personalizadas */
+    .success-box {
+        background: rgba(0, 255, 128, 0.1);
+        border-left: 4px solid #00ff80;
+        padding: 16px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+    .error-box {
+        background: rgba(255, 75, 75, 0.1);
+        border-left: 4px solid #ff4b4b;
+        padding: 16px;
+        border-radius: 8px;
+        margin-bottom: 15px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -177,11 +212,11 @@ st.markdown("""
         <span class="cyber-icon">⚡</span>
         <div>
             <p class="cyber-title-text">CYBER-TRADER</p>
-            <p class="cyber-subtitle">Quantum Analytics Engine + Live Signal Tracker</p>
+            <p class="cyber-subtitle">Quantum Analytics & Live Signal Terminal</p>
         </div>
     </div>
     <div class="utc-badge">
-        ZONA: UTC-3
+        🌐 ZONA: UTC-3
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -218,7 +253,7 @@ temporalidad = st.sidebar.selectbox(
 st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Limpiar Historial de Señales"):
     st.session_state.historial_app = []
-    st.sidebar.success("¡Historial reiniciado!")
+    st.sidebar.success("¡Historial reiniciado con éxito!")
 
 # --- RENDERIZAR LA TARJETA VISUAL IDÉNTICA AL BRÓKER ---
 info_actual = activos_info[activo_seleccionado]
@@ -315,10 +350,8 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
                 
                 # Registrar automáticamente si la app dio una señal operativa en este escaneo
                 if nueva_senal:
-                    # Comprobar si ya existe una señal idéntica reciente para evitar duplicados exactos en el mismo minuto
                     id_registro = f"{activo_seleccionado}-{hora_entrada_str}"
                     if not any(s.get("id") == id_registro for s in st.session_state.historial_app):
-                        # Evaluamos el resultado preliminar comparando con la vela inmediatamente anterior o simulando pendiente
                         penultimo_cierre = float(df['Close'].iloc[-2])
                         if nueva_senal == "CALL":
                             res_parcial = "WIN 🟢" if precio_actual > penultimo_cierre else "LOSS 🔴"
@@ -345,7 +378,7 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
                 col2.metric("EMA 5 / 20", f"{ema5_val:.4f} / {ema20_val:.4f}")
                 col3.metric("RSI (14)", f"{rsi_val:.1f}")
                 col4.metric("WinRate App", f"{winrate_propio:.1f}%")
-                col5.metric("Hora Actual (UTC-3)", hora_actual_str)
+                col5.metric("Hora (UTC-3)", hora_actual_str)
                 
                 st.markdown("---")
                 
@@ -358,28 +391,35 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
                     razones.append("❌ **Tendencia:** EMA rápida por debajo de la lenta (Bajista).")
                 
                 if es_call:
-                    st.success(f"### 🟢 SEÑAL DE ALTA CONFLUENCIA: CALL (COMPRA / SUBIR)")
-                    st.markdown(f"🕒 **Hora exacta de entrada (Próxima Vela):** `{hora_entrada_str} UTC-3`")
-                    st.write("Filtros superados: Cruce alcista confirmado con soporte en zona media/baja de Bollinger.")
+                    st.markdown(f"""
+                    <div class="success-box">
+                        <h3 style="color: #00ff80 !important; margin:0;">🟢 SEÑAL DE ALTA CONFLUENCIA: CALL (COMPRA / SUBIR)</h3>
+                        <p style="margin: 5px 0 0 0; font-size:15px;">🕒 <b>Hora exacta de entrada (Próxima Vela):</b> {hora_entrada_str} UTC-3</p>
+                        <p style="margin: 2px 0 0 0; color: #b0c4de; font-size: 13px;">Filtros superados: Cruce alcista confirmado con soporte en zona media/baja de Bollinger.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
                 elif es_put:
-                    st.error(f"### 🔴 SEÑAL DE ALTA CONFLUENCIA: PUT (VENTA / BAJAR)")
-                    st.markdown(f"🕒 **Hora exacta de entrada (Próxima Vela):** `{hora_entrada_str} UTC-3`")
-                    st.write("Filtros superados: Cruce bajista confirmado con resistencia en zona media/alta de Bollinger.")
+                    st.markdown(f"""
+                    <div class="error-box">
+                        <h3 style="color: #ff4b4b !important; margin:0;">🔴 SEÑAL DE ALTA CONFLUENCIA: PUT (VENTA / BAJAR)</h3>
+                        <p style="margin: 5px 0 0 0; font-size:15px;">🕒 <b>Hora exacta de entrada (Próxima Vela):</b> {hora_entrada_str} UTC-3</p>
+                        <p style="margin: 2px 0 0 0; color: #b0c4de; font-size: 13px;">Filtros superados: Cruce bajista confirmado con resistencia en zona media/alta de Bollinger.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
                 else:
-                    st.warning(f"### ⚪ FILTRADO: MERCADO EN ZONA NEUTRAL O RUIDO")
-                    st.write("El sistema ha neutralizado la operación para proteger capital. No hay confluencia exacta.")
+                    st.warning("### ⚪ FILTRADO: MERCADO EN ZONA NEUTRAL O RUIDO\nEl sistema ha neutralizado la operación para proteger capital. No hay confluencia exacta.")
                 
                 # --- SECCIÓN DE HISTORIAL DE SEÑALES EMITIDAS POR LA APP ---
                 st.markdown("---")
                 st.subheader("📜 Historial de Señales Emitidas por Tu Aplicación")
-                st.markdown("Cada vez que la aplicación emite una señal de entrada válida, se registra en esta bitácora en tiempo real:")
+                st.markdown("Registro persistente en tiempo real de las operaciones detectadas por el motor cuántico:")
                 
                 if len(st.session_state.historial_app) > 0:
                     df_app_hist = pd.DataFrame(st.session_state.historial_app)[["Hora", "Activo", "Señal", "Entrada", "Resultado"]]
                     st.dataframe(df_app_hist.iloc[::-1], use_container_width=True)
                     st.info(f"📊 Estadísticas de la Sesión: {total_guardadas} señales emitidas | {wins_guardadas} aciertos | Efectividad: **{winrate_propio:.1f}%**")
                 else:
-                    st.info("Aún no se han emitido señales en esta sesión. Ejecuta el escaneo cuando el mercado cumpla las condiciones exactas para que aparezcan aquí.")
+                    st.info("Aún no se han emitido señales en esta sesión. Ejecuta el escaneo cuando el mercado cumpla las condiciones exactas.")
                 
                 with st.expander("🔍 Ver detalles técnicos de los filtros"):
                     for r in razones:
@@ -396,4 +436,4 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
         except Exception as e:
             st.error(f"Error crítico en el procesamiento de datos: {e}")
 else:
-    st.info("👈 Selecciona tu activo en la barra lateral y haz clic en **INICIAR ESCANEO CUÁNTICO** para generar y registrar señales.")
+    st.info("👈 Selecciona tu activo en la barra lateral y haz clic en **INICIAR ESCANEO CUÁNTICO** para desplegar la terminal analítica.")
