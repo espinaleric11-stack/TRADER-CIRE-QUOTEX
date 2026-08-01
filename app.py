@@ -13,20 +13,21 @@ st.set_page_config(
 st.title("📈 Analizador Técnico Independiente (UTC-3)")
 st.markdown("Herramienta de análisis en tiempo real con marcas de tiempo exactas (Zona horaria: **UTC-3**).")
 
-# 2. Panel lateral de configuración con activos OTC y Forex
+# 2. Panel lateral de configuración con formato de activos idéntico al bróker
 st.sidebar.header("Parámetros de Análisis")
 
 activo = st.sidebar.selectbox(
     "Seleccionar Activo / Par", 
     [
-        # Pares OTC
-        "EURUSD_otc", "GBPUSD_otc", "USDJPY_otc", "AUDUSD_otc", "EURJPY_otc", "GBPJPY_otc",
-        # Forex Principales
-        "EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "USDCAD=X", "NZDUSD=X", "USDCHF=X",
-        # Metales y Materias Primas
-        "GC=F (Oro / XAU)", "SI=F (Plata)", "CL=F (Petróleo Crudo)",
+        # Pares OTC (Formato de bróker)
+        "EUR/USD (OTC)", "GBP/USD (OTC)", "USD/CAD (OTC)", "USD/JPY (OTC)", 
+        "AUD/USD (OTC)", "EUR/JPY (OTC)", "GBP/JPY (OTC)", "EUR/GBP (OTC)",
+        # Forex Principales (Mercado Abierto)
+        "EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD", "USD/CAD", "NZD/USD", "USD/CHF",
+        # Metales
+        "XAU/USD (Oro / OTC)", "GC=F (Oro Estándar)",
         # Criptomonedas
-        "BTC-USD", "ETH-USD", "BNB-USD", "XRP-USD", "SOL-USD"
+        "BTC/USD", "ETH/USD"
     ]
 )
 
@@ -44,17 +45,29 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Mercado"):
         try:
             import yfinance as yf
             
+            # Mapeo inteligente para convertir el formato visual del bróker a los símbolos de datos públicos
             simbolo_map = {
-                "EURUSD_otc": "EURUSD=X",
-                "GBPUSD_otc": "GBPUSD=X",
-                "USDJPY_otc": "USDJPY=X",
-                "AUDUSD_otc": "AUDUSD=X",
-                "EURJPY_otc": "EURJPY=X",
-                "GBPJPY_otc": "GBPJPY=X"
+                "EUR/USD (OTC)": "EURUSD=X",
+                "GBP/USD (OTC)": "GBPUSD=X",
+                "USD/CAD (OTC)": "USDCAD=X",
+                "USD/JPY (OTC)": "USDJPY=X",
+                "AUD/USD (OTC)": "AUDUSD=X",
+                "EUR/JPY (OTC)": "EURJPY=X",
+                "GBP/JPY (OTC)": "GBPJPY=X",
+                "EUR/GBP (OTC)": "EURGBP=X",
+                "EUR/USD": "EURUSD=X",
+                "GBP/USD": "GBPUSD=X",
+                "USD/JPY": "USDJPY=X",
+                "AUD/USD": "AUDUSD=X",
+                "USD/CAD": "USDCAD=X",
+                "NZD/USD": "NZDUSD=X",
+                "USD/CHF": "USDCHF=X",
+                "XAU/USD (Oro / OTC)": "GC=F",
+                "BTC/USD": "BTC-USD",
+                "ETH/USD": "ETH-USD"
             }
             
-            simbolo_limpio = activo.split(" ")[0]
-            symbol_to_fetch = simbolo_map.get(simbolo_limpio, simbolo_limpio)
+            symbol_to_fetch = simbolo_map.get(activo, "EURUSD=X")
             
             periodo = "1d" if temporalidad in ["1m", "5m", "15m"] else "5d"
             df = yf.download(symbol_to_fetch, period=periodo, interval=temporalidad, progress=False)
@@ -81,11 +94,8 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Mercado"):
                 rsi_val = float(df['RSI'].iloc[-1]) if not np.isnan(df['RSI'].iloc[-1]) else 50.0
                 
                 # --- CALCULO DE HORA UTC-3 ---
-                # Obtener la hora actual ajustada a UTC-3
                 tz_utc_minus_3 = timezone(timedelta(hours=-3))
                 ahora_utc3 = datetime.now(tz_utc_minus_3)
-                
-                # Definir hora de entrada sugerida (Siguiente minuto exacto o apertura de siguiente vela)
                 hora_entrada = ahora_utc3.strftime("%H:%M:%S")
                 
                 # --- MÉTRICAS VISUALES ---
@@ -98,7 +108,7 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Mercado"):
                 st.markdown("---")
                 
                 # --- MOTOR DE DECISIÓN DE SEÑALES CON HORA EXACTA ---
-                st.subheader("🎯 Resultado del Análisis Técnico")
+                st.subheader(f"🎯 Resultado del Análisis para: {activo}")
                 
                 razones = []
                 if ema5_val > ema20_val:
@@ -143,4 +153,4 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Mercado"):
         except Exception as e:
             st.error(f"Ocurrió un error al procesar los datos de mercado: {e}")
 else:
-    st.info("👈 Selecciona tu activo y haz clic en **Ejecutar Análisis de Mercado** para ver la señal y la hora exacta de entrada.")
+    st.info("👈 Selecciona tu activo (ej. `USD/CAD (OTC)`) en la barra lateral y haz clic en **Ejecutar Análisis de Mercado**.")
