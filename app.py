@@ -1,116 +1,139 @@
 import streamlit as st
-import asyncio
 import pandas as pd
-import sys
-import types
+import numpy as np
+import datetime
 
-# Parche global de distutils
-class LooseVersion(list):
-    def __init__(self, vstring=None):
-        self.vstring = vstring
-        versions = [int(x) for x in str(vstring).split(".") if x.isdigit()] if vstring else []
-        super().__init__(versions)
-        self.version = versions
+# 1. Configuración de la interfaz
+st.set_page_config(
+    page_title="Analizador Técnico - Opciones & Forex", 
+    page_icon="📈", 
+    layout="wide"
+)
 
-    def __str__(self):
-        return self.vstring or ""
-    def __repr__(self):
-        return f"LooseVersion ('{self.vstring}')"
+st.title("📈 Analizador Técnico Independiente")
+st.markdown("Herramienta de análisis en tiempo real basada en indicadores técnicos (Medias Móviles y RSI) sin dependencias de navegador.")
 
-    def _cmp(self, other):
-        if isinstance(other, LooseVersion):
-            other_v = other
-        else:
-            other_v = [int(x) for x in str(other).split(".") if x.isdigit()]
-        if self == other_v: return 0
-        elif self < other_v: return -1
-        else: return 1
+# 2. Panel lateral de configuración
+st.sidebar.header("Parámetros de Análisis")
 
-    def __lt__(self, other): return self._cmp(other) < 0
-    def __le__(self, other): return self._cmp(other) <= 0
-    def __gt__(self, other): return self._cmp(other) > 0
-    def __ge__(self, other): return self._cmp(other) >= 0
-    def __eq__(self, other): return self._cmp(other) == 0
-    def __ne__(self, other): return self._cmp(other) != 0
+# Selección de activos (Soportando pares de Forex, Crypto y activos populares)
+activo = st.sidebar.selectbox(
+    "Seleccionar Activo / Par", 
+    ["EURUSD=X", "GBPUSD=X", "GC=F (Oro / XAU)", "BTC-USD", "ETH-USD"]
+)
 
-distutils_mod = types.ModuleType("distutils")
-distutils_version = types.ModuleType("distutils.version")
-distutils_version.LooseVersion = LooseVersion
-distutils_mod.version = distutils_version
-sys.modules["distutils"] = distutils_mod
-sys.modules["distutils.version"] = distutils_version
+temporalidad = st.sidebar.selectbox(
+    "Temporalidad de las Velas", 
+    ["1m", "5m", "15m", "1h", "1d"]
+)
 
-st.set_page_config(page_title="Señales Quotex", page_icon="📈", layout="centered")
+st.sidebar.markdown("---")
+st.sidebar.info("💡 **Modo Independiente:** No requiere inicio de sesión en brókeres cerrados. Los datos se obtienen de feeds financieros públicos.")
 
-st.title("📈 Generador de Señales - Quotex")
-st.write("Herramienta de análisis técnico para opciones binarias.")
-
-st.sidebar.header("Configuración de Cuenta")
-email = st.sidebar.text_input("Correo de Quotex")
-password = st.sidebar.text_input("Contraseña", type="password", value="")
-activo = st.sidebar.selectbox("Activo a operar", ["EURUSD", "GBPUSD", "EURUSD_otc", "XAUUSD_otc"])
-
-if "conectado" not in st.session_state:
-    st.session_state.conectado = False
-
-if st.sidebar.button("Conectar al Bróker"):
-    if not email or not password:
-        st.warning("⚠️ Ingresa tus credenciales.")
-    else:
-        with st.spinner("🔄 Conectando con Quotex... (Esto puede tomar unos segundos)"):
+# 3. Lógica principal del analizador
+if st.sidebar.button("🚀 Ejecutar Análisis de Mercado"):
+    with st.spinner(f"Obteniendo y procesando datos para {activo}..."):
+        try:
+            import yfinance as yf
             
-            async def test_conexion():
-                try:
-                    from quotexpy import Quotex
-                    # Intentar conexión con reintentos para evitar fallos de elementos DOM
-                    client = Quotex(email=email, password=password, headless=True)
-                    check, reason = await client.connect()
-                    return check, reason, client
-                except Exception as e:
-                    return False, f"Fallo de automatización web: {str(e)}", None
-
-            exito, mensaje, cliente_quotex = asyncio.run(test_conexion())
-
-            if exito:
-                st.session_state.conectado = True
-                st.session_state.client = cliente_quotex
-                st.success("¡Conexión establecida con éxito!")
+            # Mapeo de nombres amigables para yfinance
+            ticker_map = {
+                "EURUSD=X": "EURUSD=X",
+                "GBPUSD=X": "GBPUSD=X",
+                "GC=F (Oro / XAU)": "GC=F",
+                "BTC-USD": "BTC-USD",
+                "ETH-USD": "ETH-USD"
+            }
+            
+            symbol = ticker_map.get(activo, "EURUSD=X")
+            
+            # Descargar datos recientes según la temporalidad
+            periodo = "1d" if temporalidad in ["1m", "5m", "15m"] else "5d"
+            df = yf.download(symbol, period=periodo, interval=temporalidad, progress=False)
+            
+            # Validar si se obtuvieron datos
+            if df.empty or len(df) < 20:
+                st.warning("⚠️ No hay suficientes datos disponibles para este intervalo en este momento. Intenta con otra temporalidad.")
             else:
-                st.error(f"❌ {mensaje}")
-                st.info("💡 Nota: Los brókeres actualizan sus formularios web frecuentemente, lo que puede romper las librerías de automatización de navegador en la nube.")
-
-if st.session_state.get("conectado", False):
-    st.info(f"🟢 Sesión activa para el activo: **{activo}**")
-    
-    if st.button("📊 Analizar Mercado y Obtener Velas"):
-        with st.spinner("Analizando velas..."):
-            async def obtener_datos():
-                try:
-                    client = st.session_state.client
-                    candles = await client.get_candles(activo, 60)
-                    return candles
-                except Exception:
-                    return None
-
-            candles_data = asyncio.run(obtener_datos())
-
-            if candles_data:
-                df = pd.DataFrame(candles_data)
-                df['EMA_5'] = df['close'].ewm(span=5, adjust=False).mean()
-                df['EMA_20'] = df['close'].ewm(span=20, adjust=False).mean()
+                # Limpiar índice múltiple si yfinance lo devuelve
+                if isinstance(df.columns, pd.MultiIndex):
+                    df.columns = df.columns.get_level_values(0)
                 
-                precio_actual = df['close'].iloc[-2]
-                ema5_val = df['EMA_5'].iloc[-2]
-                ema20_val = df['EMA_20'].iloc[-2]
+                # Cálculos de Indicadores Técnicos
+                # 1. Medias Móviles Exponenciales (EMA)
+                df['EMA_5'] = df['Close'].ewm(span=5, adjust=False).mean()
+                df['EMA_20'] = df['Close'].ewm(span=20, adjust=False).mean()
                 
-                st.write(f"**Precio actual:** {precio_actual}")
+                # 2. Índice de Fuerza Relativa (RSI de 14 periodos)
+                delta = df['Close'].diff()
+                gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+                loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+                rs = gain / loss
+                df['RSI'] = 100 - (100 / (1 + rs))
                 
+                # Obtener valores actuales (penúltima vela cerrada para evitar ruido de vela en curso)
+                precio_actual = float(df['Close'].iloc[-1])
+                ema5_val = float(df['EMA_5'].iloc[-1])
+                ema20_val = float(df['EMA_20'].iloc[-1])
+                rsi_val = float(df['RSI'].iloc[-1]) if not np.isnan(df['RSI'].iloc[-1]) else 50.0
+                
+                # --- MÉTRICAS VISUALES ---
+                col1, col2, col3 = st.columns(3)
+                col1.metric("Precio Actual", f"{precio_actual:.5f}")
+                col2.metric("EMA 5 (Rápida)", f"{ema5_val:.5f}")
+                col3.metric("RSI (14)", f"{rsi_val:.2f}")
+                
+                st.markdown("---")
+                
+                # --- MOTOR DE DECISIÓN DE SEÑALES ---
+                st.subheader("🎯 Resultado del Análisis Técnico")
+                
+                puntuacion_alcista = 0
+                razones = []
+                
+                # Criterio EMA
                 if ema5_val > ema20_val:
-                    st.markdown("### 🟢 SEÑAL SUGERIDA: **CALL (COMPRA / SUBIR)**")
+                    puntuacion_alcista += 1
+                    razones.append("La EMA rápida (5) está por encima de la EMA lenta (20) (Tendencia Alcista).")
                 else:
-                    st.markdown("### 🔴 SEÑAL SUGERIDA: **PUT (VENTA / BAJAR)**")
+                    razones.append("La EMA rápida (5) está por debajo de la EMA lenta (20) (Tendencia Bajista).")
                 
-                with st.expander("Ver histórico"):
-                    st.dataframe(df[['time', 'close', 'EMA_5', 'EMA_20']].tail(10))
-            else:
-                st.error("No se pudieron recuperar los datos de las velas.")
+                # Criterio RSI
+                if rsi_val < 30:
+                    puntuacion_alcista += 1
+                    razones.append(f"El RSI está en niveles de sobreventa ({rsi_val:.1f}), posible rebote al alza.")
+                elif rsi_val > 70:
+                    razones.append(f"El RSI está en niveles de sobrecompra ({rsi_val:.1f}), posible corrección a la baja.")
+                else:
+                    razones.append(f"El RSI se encuentra en zona neutral ({rsi_val:.1f}).")
+                
+                # Mostrar señal en pantalla
+                if ema5_val > ema20_val and rsi_val < 65:
+                    st.success("### 🟢 SEÑAL SUGERIDA: CALL (COMPRA / SUBIR)")
+                    st.write("Condiciones favorables detectadas para operaciones al alza.")
+                elif ema5_val < ema20_val and rsi_val > 35:
+                    st.error("### 🔴 SEÑAL SUGERIDA: PUT (VENTA / BAJAR)")
+                    st.write("Condiciones favorables detectadas para operaciones a la baja.")
+                else:
+                    st.warning("### ⚪ MERCADO LATERAL / SIN SEÑAL CLARA")
+                    st.write("Los indicadores muestran señales mixtas. Se recomienda esperar mejor confirmación.")
+                
+                with st.expander("🔍 Ver detalles del análisis técnico"):
+                    for r in razones:
+                        st.write(f"- {r}")
+                
+                # --- GRÁFICA VISUAL DE PRECIOS Y MEDIAS ---
+                st.markdown("---")
+                st.subheader("📊 Gráfica de Comportamiento del Precio")
+                
+                # Preparar dataframe limpio para Streamlit line_chart
+                df_chart = df[['Close', 'EMA_5', 'EMA_20']].tail(50)
+                st.line_chart(df_chart)
+                
+                with st.expander("Ver tabla histórica de datos recientes"):
+                    st.dataframe(df[['Close', 'EMA_5', 'EMA_20', 'RSI']].tail(10))
+
+        except Exception as e:
+            st.error(f"Ocurrió un error al procesar los datos de mercado: {e}")
+else:
+    st.info("👈 Selecciona tu activo preferido en la barra lateral y haz clic en **Ejecutar Análisis de Mercado** para comenzar.")
