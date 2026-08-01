@@ -13,13 +13,23 @@ st.set_page_config(
 st.title("📈 Analizador Técnico Independiente")
 st.markdown("Herramienta de análisis en tiempo real basada en indicadores técnicos (Medias Móviles y RSI) sin dependencias de navegador.")
 
-# 2. Panel lateral de configuración
+# 2. Panel lateral de configuración con lista completa de activos
 st.sidebar.header("Parámetros de Análisis")
 
-# Selección de activos (Soportando pares de Forex, Crypto y activos populares)
 activo = st.sidebar.selectbox(
     "Seleccionar Activo / Par", 
-    ["EURUSD=X", "GBPUSD=X", "GC=F (Oro / XAU)", "BTC-USD", "ETH-USD"]
+    [
+        # Forex Principales
+        "EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "USDCAD=X", "NZDUSD=X", "USDCHF=X",
+        # Forex Cruces / Populares
+        "EURGBP=X", "EURJPY=X", "GBPJPY=X", "AUDJPY=X",
+        # Metales y Materias Primas
+        "GC=F (Oro / XAU)", "SI=F (Plata)", "CL=F (Petróleo Crudo)",
+        # Criptomonedas
+        "BTC-USD", "ETH-USD", "BNB-USD", "XRP-USD", "SOL-USD", "ADA-USD",
+        # Índices Bursátiles Globales
+        "^GSPC (S&P 500)", "^DJI (Dow Jones)", "^IXIC (NASDAQ)", "^FTSE (FTSE 100)"
+    ]
 )
 
 temporalidad = st.sidebar.selectbox(
@@ -36,20 +46,12 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Mercado"):
         try:
             import yfinance as yf
             
-            # Mapeo de nombres amigables para yfinance
-            ticker_map = {
-                "EURUSD=X": "EURUSD=X",
-                "GBPUSD=X": "GBPUSD=X",
-                "GC=F (Oro / XAU)": "GC=F",
-                "BTC-USD": "BTC-USD",
-                "ETH-USD": "ETH-USD"
-            }
-            
-            symbol = ticker_map.get(activo, "EURUSD=X")
+            # Mapeo limpio para extraer el símbolo real de Yahoo Finance
+            simbolo_limpio = activo.split(" ")[0]
             
             # Descargar datos recientes según la temporalidad
             periodo = "1d" if temporalidad in ["1m", "5m", "15m"] else "5d"
-            df = yf.download(symbol, period=periodo, interval=temporalidad, progress=False)
+            df = yf.download(simbolo_limpio, period=periodo, interval=temporalidad, progress=False)
             
             # Validar si se obtuvieron datos
             if df.empty or len(df) < 20:
@@ -60,18 +62,16 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Mercado"):
                     df.columns = df.columns.get_level_values(0)
                 
                 # Cálculos de Indicadores Técnicos
-                # 1. Medias Móviles Exponenciales (EMA)
                 df['EMA_5'] = df['Close'].ewm(span=5, adjust=False).mean()
                 df['EMA_20'] = df['Close'].ewm(span=20, adjust=False).mean()
                 
-                # 2. Índice de Fuerza Relativa (RSI de 14 periodos)
+                # RSI de 14 periodos
                 delta = df['Close'].diff()
                 gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
                 loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
                 rs = gain / loss
                 df['RSI'] = 100 - (100 / (1 + rs))
                 
-                # Obtener valores actuales (penúltima vela cerrada para evitar ruido de vela en curso)
                 precio_actual = float(df['Close'].iloc[-1])
                 ema5_val = float(df['EMA_5'].iloc[-1])
                 ema20_val = float(df['EMA_20'].iloc[-1])
@@ -88,26 +88,21 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Mercado"):
                 # --- MOTOR DE DECISIÓN DE SEÑALES ---
                 st.subheader("🎯 Resultado del Análisis Técnico")
                 
-                puntuacion_alcista = 0
                 razones = []
                 
-                # Criterio EMA
                 if ema5_val > ema20_val:
-                    puntuacion_alcista += 1
                     razones.append("La EMA rápida (5) está por encima de la EMA lenta (20) (Tendencia Alcista).")
                 else:
                     razones.append("La EMA rápida (5) está por debajo de la EMA lenta (20) (Tendencia Bajista).")
                 
-                # Criterio RSI
                 if rsi_val < 30:
-                    puntuacion_alcista += 1
                     razones.append(f"El RSI está en niveles de sobreventa ({rsi_val:.1f}), posible rebote al alza.")
                 elif rsi_val > 70:
                     razones.append(f"El RSI está en niveles de sobrecompra ({rsi_val:.1f}), posible corrección a la baja.")
                 else:
                     razones.append(f"El RSI se encuentra en zona neutral ({rsi_val:.1f}).")
                 
-                # Mostrar señal en pantalla
+                # Mostrar señal
                 if ema5_val > ema20_val and rsi_val < 65:
                     st.success("### 🟢 SEÑAL SUGERIDA: CALL (COMPRA / SUBIR)")
                     st.write("Condiciones favorables detectadas para operaciones al alza.")
@@ -126,7 +121,6 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Mercado"):
                 st.markdown("---")
                 st.subheader("📊 Gráfica de Comportamiento del Precio")
                 
-                # Preparar dataframe limpio para Streamlit line_chart
                 df_chart = df[['Close', 'EMA_5', 'EMA_20']].tail(50)
                 st.line_chart(df_chart)
                 
