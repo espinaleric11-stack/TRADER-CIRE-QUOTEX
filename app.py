@@ -282,6 +282,7 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
                 ema5_val = float(df['EMA_5'].iloc[-1])
                 ema20_val = float(df['EMA_20'].iloc[-1])
                 rsi_val = float(df['RSI'].iloc[-1]) if not np.isnan(df['RSI'].iloc[-1]) else 50.0
+                bb_middle = float(df['BB_Middle'].iloc[-1])
                 bb_upper = float(df['BB_Upper'].iloc[-1])
                 bb_lower = float(df['BB_Lower'].iloc[-1])
                 atr_val = float(df['ATR'].iloc[-1]) if not np.isnan(df['ATR'].iloc[-1]) else 0.0
@@ -300,7 +301,6 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
                 
                 # --- MOTOR DE DECISIÓN ADAPTATIVO SEGÚN EL NIVEL DE ESTRICTEZ ---
                 if "Conservador" in nivel_estrictez:
-                    # Filtros muy estrictos (WinRate Máximo)
                     tendencia_ok_call = (ema5_val > ema20_val)
                     tendencia_ok_put = (ema5_val < ema20_val)
                     rsi_ok_call = rsi_val <= 40
@@ -308,7 +308,6 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
                     bb_ok_call = precio_actual <= (bb_lower + (atr_val * 0.3))
                     bb_ok_put = precio_actual >= (bb_upper - (atr_val * 0.3))
                 elif "Moderado" in nivel_estrictez:
-                    # Filtros equilibrados
                     tendencia_ok_call = (ema5_val > ema20_val)
                     tendencia_ok_put = (ema5_val < ema20_val)
                     rsi_ok_call = rsi_val <= 48
@@ -316,7 +315,6 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
                     bb_ok_call = precio_actual <= bb_middle
                     bb_ok_put = precio_actual >= bb_middle
                 else:
-                    # Agresivo (Frecuencia alta)
                     tendencia_ok_call = (ema5_val >= ema20_val)
                     tendencia_ok_put = (ema5_val <= ema20_val)
                     rsi_ok_call = rsi_val < 55
