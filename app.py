@@ -1,3 +1,48 @@
+import sys
+import types
+
+# -------------------------------------------------------------
+# PARCHE GLOBAL CRÍTICO PARA DISTUTILS.VERSION (Python 3.12+)
+# -------------------------------------------------------------
+class LooseVersion:
+    def __init__(self, vstring=None):
+        self.vstring = vstring
+        self.version = [int(x) for x in vstring.split(".") if x.isdigit()] if vstring else []
+        
+    def __str__(self):
+        return self.vstring or ""
+    def __repr__(self):
+        return f"LooseVersion ('{self.vstring}')"
+    def _cmp(self, other):
+        if isinstance(other, LooseVersion):
+            other_v = other.version
+        else:
+            other_v = [int(x) for x in str(other).split(".") if x.isdigit()]
+        
+        if self.version == other_v:
+            return 0
+        elif self.version < other_v:
+            return -1
+        else:
+            return 1
+
+    def __lt__(self, other): return self._cmp(other) < 0
+    def __le__(self, other): return self._cmp(other) <= 0
+    def __gt__(self, other): return self._cmp(other) > 0
+    def __ge__(self, other): return self._cmp(other) >= 0
+    def __eq__(self, other): return self._cmp(other) == 0
+    def __ne__(self, other): return self._cmp(other) != 0
+
+# Forzar el módulo en el sistema antes de que cualquier librería lo requiera
+distutils_mod = types.ModuleType("distutils")
+distutils_version = types.ModuleType("distutils.version")
+distutils_version.LooseVersion = LooseVersion
+distutils_mod.version = distutils_version
+
+sys.modules["distutils"] = distutils_mod
+sys.modules["distutils.version"] = distutils_version
+# -------------------------------------------------------------
+
 import streamlit as st
 import asyncio
 import pandas as pd
@@ -27,37 +72,6 @@ if st.sidebar.button("Conectar al Bróker"):
             
             async def test_conexion():
                 try:
-                    # PARCHE INTERNO: Se aplica aquí dentro para que afecte al hilo de conexión
-                    import sys
-                    import types
-                    if "distutils" not in sys.modules:
-                        distutils_mod = types.ModuleType("distutils")
-                        distutils_version = types.ModuleType("distutils.version")
-                        
-                        class LooseVersion:
-                            def __init__(self, vstring=None):
-                                self.vstring = vstring
-                                self.version = [int(x) for x in vstring.split(".") if x.isdigit()] if vstring else []
-                                
-                            def __str__(self):
-                                return self.vstring or ""
-                            def __repr__(self):
-                                return f"LooseVersion ('{self.vstring}')"
-                            def _cmp(self, other):
-                                if isinstance(other, LooseVersion):
-                                    return 0
-                                return -1
-                            def __lt__(self, other): return self._cmp(other) < 0
-                            def __le__(self, other): return self._cmp(other) <= 0
-                            def __gt__(self, other): return self._cmp(other) > 0
-                            def __ge__(self, other): return self._cmp(other) >= 0
-                            def __eq__(self, other): return self._cmp(other) == 0
-                            def __ne__(self, other): return self._cmp(other) != 0
-
-                        distutils_version.LooseVersion = LooseVersion
-                        sys.modules["distutils"] = distutils_mod
-                        sys.modules["distutils.version"] = distutils_version
-
                     from quotexpy import Quotex
                     client = Quotex(email=email, password=password)
                     check, reason = await client.connect()
