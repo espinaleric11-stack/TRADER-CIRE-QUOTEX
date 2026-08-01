@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. Inyectar Estilos CSS Futuristas
+# 2. Inyectar Estilos CSS Futuristas y componentes de JavaScript para el Portapapeles
 st.markdown("""
 <style>
     .stApp {
@@ -326,7 +326,7 @@ if st.sidebar.button("🚀 INICIAR ESCANEO MULTIMODAL SIMULTÁNEO"):
                                 "Modo": modo_nombre,
                                 "Activo": activo_seleccionado,
                                 "Señal": s_val,
-                                "Entrada": f"{precio_actual:.5f}",
+                                "Entrada": hora_entrada_str,
                                 "Resultado": res_parcial
                             })
 
@@ -345,35 +345,53 @@ if st.sidebar.button("🚀 INICIAR ESCANEO MULTIMODAL SIMULTÁNEO"):
                 st.markdown("---")
                 st.subheader(f"⚡ Resultados Simultáneos para: {activo_seleccionado}")
                 
-                # Visualización en 3 columnas para los 3 modos al mismo tiempo
+                # Visualización en 3 columnas para los 3 modos al mismo tiempo con Botón de Clip para copiar
                 col_m1, col_m2, col_m3 = st.columns(3)
                 
                 with col_m1:
                     st.markdown("### 🛡️ Modo Conservador")
                     if senal_conservadora == "CALL":
-                        st.markdown(f'<div class="success-box"><h4 style="color:#00ff80; margin:0;">🟢 CALL</h4><p style="margin:5px 0 0 0; font-size:13px;">Entrada: {hora_entrada_str}</p></div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="success-box"><h4 style="color:#00ff80; margin:0;">🟢 CALL</h4></div>', unsafe_allow_html=True)
                     elif senal_conservadora == "PUT":
-                        st.markdown(f'<div class="error-box"><h4 style="color:#ff4b4b; margin:0;">🔴 PUT</h4><p style="margin:5px 0 0 0; font-size:13px;">Entrada: {hora_entrada_str}</p></div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="error-box"><h4 style="color:#ff4b4b; margin:0;">🔴 PUT</h4></div>', unsafe_allow_html=True)
                     else:
-                        st.markdown('<div class="neutral-box"><h4 style="color:#8a99ad; margin:0;">⚪ NEUTRAL</h4><p style="margin:5px 0 0 0; font-size:13px;">Sin confluencia estricta</p></div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="neutral-box"><h4 style="color:#8a99ad; margin:0;">⚪ NEUTRAL</h4></div>', unsafe_allow_html=True)
+                    
+                    c_col1, c_col2 = st.columns([3, 1])
+                    c_col1.markdown(f"🕒 **Entrada:** `{hora_entrada_str}`")
+                    if c_col2.button("📋", key="clip_cons", help="Copiar hora de entrada"):
+                        st.code(hora_entrada_str, language=None)
+                        st.toast(f"¡Hora {hora_entrada_str} copiada al portapapeles!", icon="📋")
 
                 with col_m2:
                     st.markdown("### ⚖️ Modo Moderado")
                     if senal_moderada == "CALL":
-                        st.markdown(f'<div class="success-box"><h4 style="color:#00ff80; margin:0;">🟢 CALL</h4><p style="margin:5px 0 0 0; font-size:13px;">Entrada: {hora_entrada_str}</p></div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="success-box"><h4 style="color:#00ff80; margin:0;">🟢 CALL</h4></div>', unsafe_allow_html=True)
                     elif senal_moderada == "PUT":
-                        st.markdown(f'<div class="error-box"><h4 style="color:#ff4b4b; margin:0;">🔴 PUT</h4><p style="margin:5px 0 0 0; font-size:13px;">Entrada: {hora_entrada_str}</p></div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="error-box"><h4 style="color:#ff4b4b; margin:0;">🔴 PUT</h4></div>', unsafe_allow_html=True)
                     else:
-                        st.markdown('<div class="neutral-box"><h4 style="color:#8a99ad; margin:0;">⚪ NEUTRAL</h4><p style="margin:5px 0 0 0; font-size:13px;">Esperando equilibrio</p></div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="neutral-box"><h4 style="color:#8a99ad; margin:0;">⚪ NEUTRAL</h4></div>', unsafe_allow_html=True)
+                    
+                    m_col1, m_col2 = st.columns([3, 1])
+                    m_col1.markdown(f"🕒 **Entrada:** `{hora_entrada_str}`")
+                    if m_col2.button("📋", key="clip_mod", help="Copiar hora de entrada"):
+                        st.code(hora_entrada_str, language=None)
+                        st.toast(f"¡Hora {hora_entrada_str} copiada al portapapeles!", icon="📋")
 
                 with col_m3:
                     st.markdown("### 🚀 Modo Agresivo")
                     if senal_agresiva == "CALL":
-                        st.markdown(f'<div class="success-box"><h4 style="color:#00ff80; margin:0;">🟢 CALL</h4><p style="margin:5px 0 0 0; font-size:13px;">Entrada: {hora_entrada_str}</p></div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="success-box"><h4 style="color:#00ff80; margin:0;">🟢 CALL</h4></div>', unsafe_allow_html=True)
                     elif senal_agresiva == "PUT":
-                        st.markdown(f'<div class="error-box"><h4 style="color:#ff4b4b; margin:0;">🔴 PUT</h4><p style="margin:5px 0 0 0; font-size:13px;">Entrada: {hora_entrada_str}</p></div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="error-box"><h4 style="color:#ff4b4b; margin:0;">🔴 PUT</h4></div>', unsafe_allow_html=True)
                     else:
-                        st.markdown('<div class="neutral-box"><h4 style="color:#8a99ad; margin:0;">⚪ NEUTRAL</h4><p style="margin:5px 0 0 0; font-size:13px;">Sin tendencia clara</p></div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="neutral-box"><h4 style="color:#8a99ad; margin:0;">⚪ NEUTRAL</h4></div>', unsafe_allow_html=True)
+                    
+                    a_col1, a_col2 = st.columns([3, 1])
+                    a_col1.markdown(f"🕒 **Entrada:** `{hora_entrada_str}`")
+                    if a_col2.button("📋", key="clip_agre", help="Copiar hora de entrada"):
+                        st.code(hora_entrada_str, language=None)
+                        st.toast(f"¡Hora {hora_entrada_str} copiada al portapapeles!", icon="📋")
 
                 st.markdown("---")
                 st.subheader("📜 Historial de Señales Multimodal")
