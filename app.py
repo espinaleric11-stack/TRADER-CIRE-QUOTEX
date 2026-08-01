@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 # 1. Configuración de la interfaz
 st.set_page_config(
-    page_title="CyberTrader - Analizador Avanzado con WinRate (UTC-3)", 
+    page_title="CyberTrader - Analizador Avanzado con Historial Propio (UTC-3)", 
     page_icon="⚡", 
     layout="wide"
 )
@@ -166,6 +166,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Inicializar la memoria de sesión para guardar las señales generadas por la app
+if "historial_app" not in st.session_state:
+    st.session_state.historial_app = []
+
 # --- CABECERA COMPACTA Y MODERNA ---
 st.markdown("""
 <div class="cyber-header">
@@ -173,7 +177,7 @@ st.markdown("""
         <span class="cyber-icon">⚡</span>
         <div>
             <p class="cyber-title-text">CYBER-TRADER</p>
-            <p class="cyber-subtitle">Quantum Analytics Engine + WinRate Tracker</p>
+            <p class="cyber-subtitle">Quantum Analytics Engine + Live Signal Tracker</p>
         </div>
     </div>
     <div class="utc-badge">
@@ -212,7 +216,9 @@ temporalidad = st.sidebar.selectbox(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.info("💡 **Historial Activo:** El motor evalúa de forma retrospectiva las últimas señales generadas para auditar el porcentaje de acierto.")
+if st.sidebar.button("🗑️ Limpiar Historial de Señales"):
+    st.session_state.historial_app = []
+    st.sidebar.success("¡Historial reiniciado!")
 
 # --- RENDERIZAR LA TARJETA VISUAL IDÉNTICA AL BRÓKER ---
 info_actual = activos_info[activo_seleccionado]
@@ -235,7 +241,7 @@ st.markdown(f"""
 
 # 4. Lógica principal del analizador
 if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
-    with st.spinner(f"Sincronizando matrices de datos y calculando historial para {activo_seleccionado}..."):
+    with st.spinner(f"Sincronizando matrices de datos para {activo_seleccionado}..."):
         try:
             import yfinance as yf
             
@@ -243,8 +249,8 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
             periodo = "1d" if temporalidad in ["1m", "5m", "15m"] else "5d"
             df = yf.download(symbol_to_fetch, period=periodo, interval=temporalidad, progress=False)
             
-            if df.empty or len(df) < 40:
-                st.warning("⚠️ Datos insuficientes en este intervalo temporal para generar el historial. Intenta cambiar de temporalidad.")
+            if df.empty or len(df) < 25:
+                st.warning("⚠️ Datos insuficientes en este intervalo temporal. Intenta cambiar de temporalidad.")
             else:
                 if isinstance(df.columns, pd.MultiIndex):
                     df.columns = df.columns.get_level_values(0)
@@ -270,50 +276,6 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
                 true_range = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
                 df['ATR'] = true_range.rolling(window=14).mean()
                 
-                # --- SIMULADOR / HISTORIAL RETROSPECTIVO DE SEÑALES (BACKTESTING RÁPIDO) ---
-                historial_senales = []
-                # Evaluamos desde la vela 30 hasta el penúltimo registro para ver si la siguiente vela dio ganancia
-                for i in range(30, len(df) - 1):
-                    p_close = df['Close'].iloc[i]
-                    e5 = df['EMA_5'].iloc[i]
-                    e20 = df['EMA_20'].iloc[i]
-                    rsi = df['RSI'].iloc[i]
-                    bb_mid = df['BB_Middle'].iloc[i]
-                    
-                    tendencia_alcista = e5 > e20
-                    tendencia_bajista = e5 < e20
-                    
-                    is_call = tendencia_alcista and rsi < 62 and (p_close <= bb_mid)
-                    is_put = tendencia_bajista and rsi > 38 and (p_close >= bb_mid)
-                    
-                    if is_call or is_put:
-                        # Precio de entrada (cierre de vela actual) y precio de salida (cierre de la siguiente vela)
-                        precio_entrada = p_close
-                        precio_siguiente = df['Close'].iloc[i + 1]
-                        
-                        if is_call:
-                            resultado = "WIN 🟢" if precio_siguiente > precio_entrada else "LOSS 🔴"
-                            tipo = "CALL"
-                        else:
-                            resultado = "WIN 🟢" if precio_siguiente < precio_entrada else "LOSS 🔴"
-                            tipo = "PUT"
-                            
-                        timestamp_vela = df.index[i]
-                        historial_senales.append({
-                            "Hora / Fecha": str(timestamp_vela),
-                            "Tipo": tipo,
-                            "Entrada": round(float(precio_entrada), 5),
-                            "Resultado": resultado
-                        })
-                
-                # Convertir a DataFrame para mostrar
-                df_historial = pd.DataFrame(historial_senales)
-                
-                wins = len(df_historial[df_historial["Resultado"] == "WIN 🟢"]) if not df_historial.empty else 0
-                total_senales = len(df_historial)
-                winrate = (wins / total_senales * 100) if total_senales > 0 else 0.0
-
-                # Valores actuales para la señal en vivo
                 precio_actual = float(df['Close'].iloc[-1])
                 ema5_val = float(df['EMA_5'].iloc[-1])
                 ema20_val = float(df['EMA_20'].iloc[-1])
@@ -334,33 +296,66 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
                 timestamp_siguiente_vela = ((timestamp_actual // segundos_totales) + 1) * segundos_totales
                 
                 siguiente_vela_dt = datetime.fromtimestamp(timestamp_siguiente_vela, tz_utc_minus_3)
+                
                 hora_actual_str = ahora_utc3.strftime("%H:%M:%S")
                 hora_entrada_str = siguiente_vela_dt.strftime("%H:%M:%S")
                 
+                # --- MOTOR DE DECISIÓN DE ALTA CONFLUENCIA ---
+                tendencia_alcista = ema5_val > ema20_val
+                tendencia_bajista = ema5_val < ema20_val
+                
+                es_call = tendencia_alcista and rsi_val < 62 and (precio_actual <= df['BB_Middle'].iloc[-1])
+                es_put = tendencia_bajista and rsi_val > 38 and (precio_actual >= df['BB_Middle'].iloc[-1])
+                
+                nueva_senal = None
+                if es_call:
+                    nueva_senal = "CALL"
+                elif es_put:
+                    nueva_senal = "PUT"
+                
+                # Registrar automáticamente si la app dio una señal operativa en este escaneo
+                if nueva_senal:
+                    # Comprobar si ya existe una señal idéntica reciente para evitar duplicados exactos en el mismo minuto
+                    id_registro = f"{activo_seleccionado}-{hora_entrada_str}"
+                    if not any(s.get("id") == id_registro for s in st.session_state.historial_app):
+                        # Evaluamos el resultado preliminar comparando con la vela inmediatamente anterior o simulando pendiente
+                        penultimo_cierre = float(df['Close'].iloc[-2])
+                        if nueva_senal == "CALL":
+                            res_parcial = "WIN 🟢" if precio_actual > penultimo_cierre else "LOSS 🔴"
+                        else:
+                            res_parcial = "WIN 🟢" if precio_actual < penultimo_cierre else "LOSS 🔴"
+                            
+                        st.session_state.historial_app.append({
+                            "id": id_registro,
+                            "Hora": hora_actual_str,
+                            "Activo": activo_seleccionado,
+                            "Señal": nueva_senal,
+                            "Entrada": f"{precio_actual:.5f}",
+                            "Resultado": res_parcial
+                        })
+
+                # --- CÁLCULO DE EFECTIVIDAD (WINRATE) DEL HISTORIAL PROPIO ---
+                total_guardadas = len(st.session_state.historial_app)
+                wins_guardadas = len([s for s in st.session_state.historial_app if "WIN" in s["Resultado"]])
+                winrate_propio = (wins_guardadas / total_guardadas * 100) if total_guardadas > 0 else 0.0
+
                 # --- MÉTRICAS VISUALES ---
                 col1, col2, col3, col4, col5 = st.columns(5)
                 col1.metric("Precio Actual", f"{precio_actual:.5f}")
                 col2.metric("EMA 5 / 20", f"{ema5_val:.4f} / {ema20_val:.4f}")
                 col3.metric("RSI (14)", f"{rsi_val:.1f}")
-                col4.metric("Efectividad (WinRate)", f"{winrate:.1f}%")
+                col4.metric("WinRate App", f"{winrate_propio:.1f}%")
                 col5.metric("Hora Actual (UTC-3)", hora_actual_str)
                 
                 st.markdown("---")
                 
-                # --- MOTOR DE DECISIÓN EN VIVO ---
-                st.subheader(f"🎯 Diagnóstico Cuántico en Vivo para: {activo_seleccionado}")
+                st.subheader(f"🎯 Diagnóstico Cuántico para: {activo_seleccionado}")
                 
                 razones = []
-                tendencia_alcista = ema5_val > ema20_val
-                tendencia_bajista = ema5_val < ema20_val
-                
                 if tendencia_alcista:
                     razones.append("✅ **Tendencia:** EMA rápida por encima de la lenta (Alcista).")
                 else:
                     razones.append("❌ **Tendencia:** EMA rápida por debajo de la lenta (Bajista).")
-                
-                es_call = tendencia_alcista and rsi_val < 62 and (precio_actual <= df['BB_Middle'].iloc[-1])
-                es_put = tendencia_bajista and rsi_val > 38 and (precio_actual >= df['BB_Middle'].iloc[-1])
                 
                 if es_call:
                     st.success(f"### 🟢 SEÑAL DE ALTA CONFLUENCIA: CALL (COMPRA / SUBIR)")
@@ -374,16 +369,17 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
                     st.warning(f"### ⚪ FILTRADO: MERCADO EN ZONA NEUTRAL O RUIDO")
                     st.write("El sistema ha neutralizado la operación para proteger capital. No hay confluencia exacta.")
                 
-                # --- SECCIÓN DE HISTORIAL DE ACIERTOS ---
+                # --- SECCIÓN DE HISTORIAL DE SEÑALES EMITIDAS POR LA APP ---
                 st.markdown("---")
-                st.subheader("📜 Historial de Aciertos Recientes (Backtesting de Señales)")
-                st.markdown("Esta tabla audita el comportamiento de las señales generadas en las velas anteriores bajo las mismas reglas del sistema:")
+                st.subheader("📜 Historial de Señales Emitidas por Tu Aplicación")
+                st.markdown("Cada vez que la aplicación emite una señal de entrada válida, se registra en esta bitácora en tiempo real:")
                 
-                if not df_historial.empty:
-                    st.dataframe(df_historial.tail(10).iloc[::-1], use_container_width=True)
-                    st.info(eval(f"f'📊 Resumen Histórico: De {total_senales} señales evaluadas recientemente, {wins} resultaron en éxito, arrojando un WinRate histórico de **{winrate:.1f}%**.'"))
+                if len(st.session_state.historial_app) > 0:
+                    df_app_hist = pd.DataFrame(st.session_state.historial_app)[["Hora", "Activo", "Señal", "Entrada", "Resultado"]]
+                    st.dataframe(df_app_hist.iloc[::-1], use_container_width=True)
+                    st.info(f"📊 Estadísticas de la Sesión: {total_guardadas} señales emitidas | {wins_guardadas} aciertos | Efectividad: **{winrate_propio:.1f}%**")
                 else:
-                    st.warning("No se registraron suficientes señales pasadas en este periodo para construir el historial.")
+                    st.info("Aún no se han emitido señales en esta sesión. Ejecuta el escaneo cuando el mercado cumpla las condiciones exactas para que aparezcan aquí.")
                 
                 with st.expander("🔍 Ver detalles técnicos de los filtros"):
                     for r in razones:
@@ -400,4 +396,4 @@ if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
         except Exception as e:
             st.error(f"Error crítico en el procesamiento de datos: {e}")
 else:
-    st.info("👈 Selecciona tu activo en la barra lateral y haz clic académico en **INICIAR ESCANEO CUÁNTICO**.")
+    st.info("👈 Selecciona tu activo en la barra lateral y haz clic en **INICIAR ESCANEO CUÁNTICO** para generar y registrar señales.")
