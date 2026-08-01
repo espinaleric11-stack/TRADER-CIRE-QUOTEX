@@ -318,13 +318,11 @@ if st.sidebar.button("🚀 INICIAR ESCANEO MULTIMODAL SIMULTÁNEO"):
                 a_put = (ema5_val <= ema20_val) and (rsi_val > 45)
                 senal_agresiva = "CALL" if a_call else ("PUT" if a_put else None)
 
-                # Guardar en historial general si alguna emite señal nueva
-                penultimo_cierre = float(df['Close'].iloc[-2])
+                # Guardar en historial general como PENDIENTE al crearse
                 for modo_nombre, s_val in [("Conservador", senal_conservadora), ("Moderado", senal_moderada), ("Agresivo", senal_agresiva)]:
                     if s_val:
                         id_registro = f"{activo_seleccionado}-{modo_nombre}-{hora_entrada_str}"
                         if not any(s.get("id") == id_registro for s in st.session_state.historial_app):
-                            res_parcial = "WIN 🟢" if (s_val == "CALL" and precio_actual > penultimo_cierre) or (s_val == "PUT" and precio_actual < penultimo_cierre) else "LOSS 🔴"
                             st.session_state.historial_app.append({
                                 "id": id_registro,
                                 "Hora": hora_actual_str,
@@ -332,7 +330,9 @@ if st.sidebar.button("🚀 INICIAR ESCANEO MULTIMODAL SIMULTÁNEO"):
                                 "Activo": activo_seleccionado,
                                 "Señal": s_val,
                                 "Entrada": hora_entrada_str,
-                                "Resultado": res_parcial
+                                "Resultado": "PENDIENTE ⏳",
+                                "timestamp_entrada": timestamp_siguiente_vela,
+                                "precio_entrada": precio_actual
                             })
 
                 # Guardar el estado actual en la sesión
@@ -353,11 +353,35 @@ if st.sidebar.button("🚀 INICIAR ESCANEO MULTIMODAL SIMULTÁNEO"):
         except Exception as e:
             st.error(f"Error crítico: {e}")
 
+# --- ACTUALIZAR ESTADOS PENDIENTES EN EL HISTORIAL ---
+tz_utc_minus_3 = timezone(timedelta(hours=-3))
+ahora_ts = datetime.now(tz_utc_minus_3).timestamp()
+
+for item in st.session_state.historial_app:
+    if item["Resultado"] == "PENDIENTE ⏳":
+        # Si la hora actual ya superó la hora de entrada de la señal, simulamos el resultado con el precio actual
+        if ahora_ts >= item["timestamp_entrada"]:
+            try:
+                import yfinance as yf
+                sim_df = yf.download(activos_info[item["Activo"]]["symbol"], period="1d", interval="1m", progress=False)
+                if not sim_df.empty:
+                    if isinstance(sim_df.columns, pd.MultiIndex):
+                        sim_df.columns = sim_df.columns.get_level_values(0)
+                    precio_final = float(sim_df['Close'].iloc[-1])
+                    p_entrada = item["precio_entrada"]
+                    
+                    if item["Señal"] == "CALL":
+                        item["Resultado"] = "WIN 🟢" if precio_final > p_entrada else "LOSS 🔴"
+                    else:
+                        item["Resultado"] = "WIN 🟢" if precio_final < p_entrada else "LOSS 🔴"
+            except:
+                pass
+
 # --- RENDERIZADO DE RESULTADOS (Persistente con Session State) ---
 if st.session_state.ultimo_resultado is not None:
     res = st.session_state.ultimo_resultado
     
-    total_guardadas = len(st.session_state.historial_app)
+    total_guardadas = len([s for s in st.session_state.historial_app if "PENDIENTE" not in s["Resultado"]])
     wins_guardadas = len([s for s in st.session_state.historial_app if "WIN" in s["Resultado"]])
     winrate_propio = (wins_guardadas / total_guardadas * 100) if total_guardadas > 0 else 0.0
 
@@ -426,7 +450,7 @@ if st.session_state.ultimo_resultado is not None:
     if len(st.session_state.historial_app) > 0:
         df_app_hist = pd.DataFrame(st.session_state.historial_app)[["Hora", "Modo", "Activo", "Señal", "Entrada", "Resultado"]]
         st.dataframe(df_app_hist.iloc[::-1], use_container_width=True)
-        st.info(f"📊 Estadísticas Generales: {total_guardadas} señales emitidas | {wins_guardadas} aciertos | WinRate: **{winrate_propio:.1f}%**")
+        st.info(f"📊 Estadísticas Generales: {len(st.session_state.historial_app)} señales registradas | {wins_guardadas} aciertos | WinRate: **{winrate_propio:.1f}%**")
     else:
         st.info("Aún no se han registrado señales en esta sesión.")
 
