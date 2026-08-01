@@ -306,17 +306,17 @@ if st.sidebar.button("🚀 INICIAR ESCANEO MULTIMODAL SIMULTÁNEO"):
                 # --- EVALUACIÓN 1: CONSERVADOR ---
                 c_call = (ema5_val > ema20_val) and (rsi_val <= 40) and (precio_actual <= (bb_lower + (atr_val * 0.3)))
                 c_put = (ema5_val < ema20_val) and (rsi_val >= 60) and (precio_actual >= (bb_upper - (atr_val * 0.3)))
-                senal_conservadora = "CALL" if c_call else ("PUT" if c_put else None)
+                senal_conservadora = "ARRIBA" if c_call else ("ABAJO" if c_put else None)
 
                 # --- EVALUACIÓN 2: MODERADO ---
                 m_call = (ema5_val > ema20_val) and (rsi_val <= 48) and (precio_actual <= bb_middle)
                 m_put = (ema5_val < ema20_val) and (rsi_val >= 52) and (precio_actual >= bb_middle)
-                senal_moderada = "CALL" if m_call else ("PUT" if m_put else None)
+                senal_moderada = "ARRIBA" if m_call else ("ABAJO" if m_put else None)
 
                 # --- EVALUACIÓN 3: AGRESIVO ---
                 a_call = (ema5_val >= ema20_val) and (rsi_val < 55)
                 a_put = (ema5_val <= ema20_val) and (rsi_val > 45)
-                senal_agresiva = "CALL" if a_call else ("PUT" if a_put else None)
+                senal_agresiva = "ARRIBA" if a_call else ("ABAJO" if a_put else None)
 
                 # Guardar en historial general como PENDIENTE al crearse
                 for modo_nombre, s_val in [("Conservador", senal_conservadora), ("Moderado", senal_moderada), ("Agresivo", senal_agresiva)]:
@@ -359,7 +359,6 @@ ahora_ts = datetime.now(tz_utc_minus_3).timestamp()
 
 for item in st.session_state.historial_app:
     if item["Resultado"] == "PENDIENTE ⏳":
-        # Si la hora actual ya superó la hora de entrada de la señal, simulamos el resultado con el precio actual
         if ahora_ts >= item["timestamp_entrada"]:
             try:
                 import yfinance as yf
@@ -370,14 +369,14 @@ for item in st.session_state.historial_app:
                     precio_final = float(sim_df['Close'].iloc[-1])
                     p_entrada = item["precio_entrada"]
                     
-                    if item["Señal"] == "CALL":
+                    if item["Señal"] == "ARRIBA":
                         item["Resultado"] = "WIN 🟢" if precio_final > p_entrada else "LOSS 🔴"
                     else:
                         item["Resultado"] = "WIN 🟢" if precio_final < p_entrada else "LOSS 🔴"
             except:
                 pass
 
-# --- RENDERIZADO DE RESULTADOS (Persistente con Session State) ---
+# --- RENDERIZADO DE RESULTADOS ---
 if st.session_state.ultimo_resultado is not None:
     res = st.session_state.ultimo_resultado
     
@@ -385,7 +384,6 @@ if st.session_state.ultimo_resultado is not None:
     wins_guardadas = len([s for s in st.session_state.historial_app if "WIN" in s["Resultado"]])
     winrate_propio = (wins_guardadas / total_guardadas * 100) if total_guardadas > 0 else 0.0
 
-    # Métricas superiores con formato ajustado para que no se recorten
     col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("Precio Actual", f"{res['precio_actual']:.4f}")
     col2.metric("EMA 5 / 20", f"{res['ema5_val']:.3f} / {res['ema20_val']:.3f}")
@@ -396,15 +394,14 @@ if st.session_state.ultimo_resultado is not None:
     st.markdown("---")
     st.subheader(f"⚡ Resultados Simultáneos para: {res['activo']}")
     
-    # Visualización en 3 columnas para los 3 modos al mismo tiempo con Botón de Clip para copiar
     col_m1, col_m2, col_m3 = st.columns(3)
     
     with col_m1:
         st.markdown("### 🛡️ Modo Conservador")
-        if res['senal_conservadora'] == "CALL":
-            st.markdown(f'<div class="success-box"><h4 style="color:#00ff80; margin:0;">🟢 CALL</h4></div>', unsafe_allow_html=True)
-        elif res['senal_conservadora'] == "PUT":
-            st.markdown(f'<div class="error-box"><h4 style="color:#ff4b4b; margin:0;">🔴 PUT</h4></div>', unsafe_allow_html=True)
+        if res['senal_conservadora'] == "ARRIBA":
+            st.markdown(f'<div class="success-box"><h4 style="color:#00ff80; margin:0;">🟢 ARRIBA</h4></div>', unsafe_allow_html=True)
+        elif res['senal_conservadora'] == "ABAJO":
+            st.markdown(f'<div class="error-box"><h4 style="color:#ff4b4b; margin:0;">🔴 ABAJO</h4></div>', unsafe_allow_html=True)
         else:
             st.markdown(f'<div class="neutral-box"><h4 style="color:#8a99ad; margin:0;">⚪ NEUTRAL</h4></div>', unsafe_allow_html=True)
         
@@ -416,10 +413,10 @@ if st.session_state.ultimo_resultado is not None:
 
     with col_m2:
         st.markdown("### ⚖️ Modo Moderado")
-        if res['senal_moderada'] == "CALL":
-            st.markdown(f'<div class="success-box"><h4 style="color:#00ff80; margin:0;">🟢 CALL</h4></div>', unsafe_allow_html=True)
-        elif res['senal_moderada'] == "PUT":
-            st.markdown(f'<div class="error-box"><h4 style="color:#ff4b4b; margin:0;">🔴 PUT</h4></div>', unsafe_allow_html=True)
+        if res['senal_moderada'] == "ARRIBA":
+            st.markdown(f'<div class="success-box"><h4 style="color:#00ff80; margin:0;">🟢 ARRIBA</h4></div>', unsafe_allow_html=True)
+        elif res['senal_moderada'] == "ABAJO":
+            st.markdown(f'<div class="error-box"><h4 style="color:#ff4b4b; margin:0;">🔴 ABAJO</h4></div>', unsafe_allow_html=True)
         else:
             st.markdown(f'<div class="neutral-box"><h4 style="color:#8a99ad; margin:0;">⚪ NEUTRAL</h4></div>', unsafe_allow_html=True)
         
@@ -431,10 +428,10 @@ if st.session_state.ultimo_resultado is not None:
 
     with col_m3:
         st.markdown("### 🚀 Modo Agresivo")
-        if res['senal_agresiva'] == "CALL":
-            st.markdown(f'<div class="success-box"><h4 style="color:#00ff80; margin:0;">🟢 CALL</h4></div>', unsafe_allow_html=True)
-        elif res['senal_agresiva'] == "PUT":
-            st.markdown(f'<div class="error-box"><h4 style="color:#ff4b4b; margin:0;">🔴 PUT</h4></div>', unsafe_allow_html=True)
+        if res['senal_agresiva'] == "ARRIBA":
+            st.markdown(f'<div class="success-box"><h4 style="color:#00ff80; margin:0;">🟢 ARRIBA</h4></div>', unsafe_allow_html=True)
+        elif res['senal_agresiva'] == "ABAJO":
+            st.markdown(f'<div class="error-box"><h4 style="color:#ff4b4b; margin:0;">🔴 ABAJO</h4></div>', unsafe_allow_html=True)
         else:
             st.markdown(f'<div class="neutral-box"><h4 style="color:#8a99ad; margin:0;">⚪ NEUTRAL</h4></div>', unsafe_allow_html=True)
         
