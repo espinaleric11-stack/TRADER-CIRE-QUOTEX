@@ -146,12 +146,13 @@ st.markdown("""
     [data-testid="stMetric"] {
         background: rgba(18, 20, 32, 0.6);
         border: 1px solid rgba(0, 255, 204, 0.2);
-        padding: 14px;
+        padding: 12px;
         border-radius: 12px;
     }
     [data-testid="stMetricValue"] {
         color: #00ffcc !important;
         font-weight: 800 !important;
+        font-size: 22px !important;
     }
     .success-box {
         background: rgba(0, 255, 128, 0.1);
@@ -334,7 +335,7 @@ if st.sidebar.button("🚀 INICIAR ESCANEO MULTIMODAL SIMULTÁNEO"):
                                 "Resultado": res_parcial
                             })
 
-                # Guardar el estado actual en la sesión para que persista al hacer clic en los clips
+                # Guardar el estado actual en la sesión
                 st.session_state.ultimo_resultado = {
                     "activo": activo_seleccionado,
                     "precio_actual": precio_actual,
@@ -360,10 +361,10 @@ if st.session_state.ultimo_resultado is not None:
     wins_guardadas = len([s for s in st.session_state.historial_app if "WIN" in s["Resultado"]])
     winrate_propio = (wins_guardadas / total_guardadas * 100) if total_guardadas > 0 else 0.0
 
-    # Métricas superiores
+    # Métricas superiores con formato ajustado para que no se recorten
     col1, col2, col3, col4, col5 = st.columns(5)
-    col1.metric("Precio Actual", f"{res['precio_actual']:.5f}")
-    col2.metric("EMA 5 / 20", f"{res['ema5_val']:.4f} / {res['ema20_val']:.4f}")
+    col1.metric("Precio Actual", f"{res['precio_actual']:.4f}")
+    col2.metric("EMA 5 / 20", f"{res['ema5_val']:.3f} / {res['ema20_val']:.3f}")
     col3.metric("RSI (14)", f"{res['rsi_val']:.1f}")
     col4.metric("WinRate Global", f"{winrate_propio:.1f}%")
     col5.metric("Hora (UTC-3)", res['hora_actual_str'])
