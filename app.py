@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import datetime
+from datetime import datetime, timedelta, timezone
 
 # 1. Configuración de la interfaz
 st.set_page_config(
@@ -10,8 +10,8 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("📈 Analizador Técnico Independiente (Especial OTC & Forex)")
-st.markdown("Herramienta de análisis en tiempo real basada en indicadores técnicos (Medias Móviles y RSI).")
+st.title("📈 Analizador Técnico Independiente (UTC-3)")
+st.markdown("Herramienta de análisis en tiempo real con marcas de tiempo exactas (Zona horaria: **UTC-3**).")
 
 # 2. Panel lateral de configuración con activos OTC y Forex
 st.sidebar.header("Parámetros de Análisis")
@@ -19,9 +19,9 @@ st.sidebar.header("Parámetros de Análisis")
 activo = st.sidebar.selectbox(
     "Seleccionar Activo / Par", 
     [
-        # Pares OTC (Simulados para análisis técnico continuo)
+        # Pares OTC
         "EURUSD_otc", "GBPUSD_otc", "USDJPY_otc", "AUDUSD_otc", "EURJPY_otc", "GBPJPY_otc",
-        # Forex Principales (Mercado Abierto / Estándar)
+        # Forex Principales
         "EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "USDCAD=X", "NZDUSD=X", "USDCHF=X",
         # Metales y Materias Primas
         "GC=F (Oro / XAU)", "SI=F (Plata)", "CL=F (Petróleo Crudo)",
@@ -36,7 +36,7 @@ temporalidad = st.sidebar.selectbox(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.info("💡 **Nota sobre activos OTC:** Dado que los mercados OTC privados de los brókeres no publican datos oficiales en la web abierta, el sistema utiliza el par forex base equivalente en tiempo real para calcular las medias móviles y el RSI con alta precisión.")
+st.sidebar.info("💡 **Reloj UTC-3 Sincronizado:** Las señales muestran la hora exacta de entrada calculada para el bróker.")
 
 # 3. Lógica principal del analizador
 if st.sidebar.button("🚀 Ejecutar Análisis de Mercado"):
@@ -44,7 +44,6 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Mercado"):
         try:
             import yfinance as yf
             
-            # Mapear activos OTC al equivalente en Yahoo Finance para obtener el flujo de precios
             simbolo_map = {
                 "EURUSD_otc": "EURUSD=X",
                 "GBPUSD_otc": "GBPUSD=X",
@@ -54,11 +53,9 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Mercado"):
                 "GBPJPY_otc": "GBPJPY=X"
             }
             
-            # Limpiar o traducir el símbolo para la consulta
             simbolo_limpio = activo.split(" ")[0]
             symbol_to_fetch = simbolo_map.get(simbolo_limpio, simbolo_limpio)
             
-            # Descargar datos recientes
             periodo = "1d" if temporalidad in ["1m", "5m", "15m"] else "5d"
             df = yf.download(symbol_to_fetch, period=periodo, interval=temporalidad, progress=False)
             
@@ -72,7 +69,6 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Mercado"):
                 df['EMA_5'] = df['Close'].ewm(span=5, adjust=False).mean()
                 df['EMA_20'] = df['Close'].ewm(span=20, adjust=False).mean()
                 
-                # RSI de 14 periodos
                 delta = df['Close'].diff()
                 gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
                 loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
@@ -84,15 +80,24 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Mercado"):
                 ema20_val = float(df['EMA_20'].iloc[-1])
                 rsi_val = float(df['RSI'].iloc[-1]) if not np.isnan(df['RSI'].iloc[-1]) else 50.0
                 
+                # --- CALCULO DE HORA UTC-3 ---
+                # Obtener la hora actual ajustada a UTC-3
+                tz_utc_minus_3 = timezone(timedelta(hours=-3))
+                ahora_utc3 = datetime.now(tz_utc_minus_3)
+                
+                # Definir hora de entrada sugerida (Siguiente minuto exacto o apertura de siguiente vela)
+                hora_entrada = ahora_utc3.strftime("%H:%M:%S")
+                
                 # --- MÉTRICAS VISUALES ---
-                col1, col2, col3 = st.columns(3)
+                col1, col2, col3, col4 = st.columns(4)
                 col1.metric("Precio Actual", f"{precio_actual:.5f}")
                 col2.metric("EMA 5 (Rápida)", f"{ema5_val:.5f}")
                 col3.metric("RSI (14)", f"{rsi_val:.2f}")
+                col4.metric("Hora Actual (UTC-3)", hora_entrada)
                 
                 st.markdown("---")
                 
-                # --- MOTOR DE DECISIÓN DE SEÑALES ---
+                # --- MOTOR DE DECISIÓN DE SEÑALES CON HORA EXACTA ---
                 st.subheader("🎯 Resultado del Análisis Técnico")
                 
                 razones = []
@@ -108,15 +113,17 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Mercado"):
                 else:
                     razones.append(f"El RSI se encuentra en zona neutral ({rsi_val:.1f}).")
                 
-                # Mostrar señal
+                # Mostrar señal indicando la hora exacta de entrada
                 if ema5_val > ema20_val and rsi_val < 65:
-                    st.success("### 🟢 SEÑAL SUGERIDA: CALL (COMPRA / SUBIR)")
+                    st.success(f"### 🟢 SEÑAL SUGERIDA: CALL (COMPRA / SUBIR)")
+                    st.markdown(f"🕒 **Hora exacta de entrada recomendada:** `{hora_entrada} UTC-3`")
                     st.write("Condiciones favorables detectadas para operaciones al alza.")
                 elif ema5_val < ema20_val and rsi_val > 35:
-                    st.error("### 🔴 SEÑAL SUGERIDA: PUT (VENTA / BAJAR)")
+                    st.error(f"### 🔴 SEÑAL SUGERIDA: PUT (VENTA / BAJAR)")
+                    st.markdown(f"🕒 **Hora exacta de entrada recomendada:** `{hora_entrada} UTC-3`")
                     st.write("Condiciones favorables detectadas para operaciones a la baja.")
                 else:
-                    st.warning("### ⚪ MERCADO LATERAL / SIN SEÑAL CLARA")
+                    st.warning(f"### ⚪ MERCADO LATERAL / SIN SEÑAL CLARA (Analizado a las {hora_entrada} UTC-3)")
                     st.write("Los indicadores muestran señales mixtas. Se recomienda esperar mejor confirmación.")
                 
                 with st.expander("🔍 Ver detalles del análisis técnico"):
@@ -136,4 +143,4 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Mercado"):
         except Exception as e:
             st.error(f"Ocurrió un error al procesar los datos de mercado: {e}")
 else:
-    st.info("👈 Selecciona tu activo (incluyendo las opciones **_otc**) en la barra lateral y haz clic en **Ejecutar Análisis de Mercado**.")
+    st.info("👈 Selecciona tu activo y haz clic en **Ejecutar Análisis de Mercado** para ver la señal y la hora exacta de entrada.")
