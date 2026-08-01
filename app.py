@@ -5,30 +5,28 @@ import datetime
 
 # 1. Configuración de la interfaz
 st.set_page_config(
-    page_title="Analizador Técnico - Opciones & Forex", 
+    page_title="Analizador Técnico - Opciones & OTC", 
     page_icon="📈", 
     layout="wide"
 )
 
-st.title("📈 Analizador Técnico Independiente")
-st.markdown("Herramienta de análisis en tiempo real basada en indicadores técnicos (Medias Móviles y RSI) sin dependencias de navegador.")
+st.title("📈 Analizador Técnico Independiente (Especial OTC & Forex)")
+st.markdown("Herramienta de análisis en tiempo real basada en indicadores técnicos (Medias Móviles y RSI).")
 
-# 2. Panel lateral de configuración con lista completa de activos
+# 2. Panel lateral de configuración con activos OTC y Forex
 st.sidebar.header("Parámetros de Análisis")
 
 activo = st.sidebar.selectbox(
     "Seleccionar Activo / Par", 
     [
-        # Forex Principales
+        # Pares OTC (Simulados para análisis técnico continuo)
+        "EURUSD_otc", "GBPUSD_otc", "USDJPY_otc", "AUDUSD_otc", "EURJPY_otc", "GBPJPY_otc",
+        # Forex Principales (Mercado Abierto / Estándar)
         "EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "USDCAD=X", "NZDUSD=X", "USDCHF=X",
-        # Forex Cruces / Populares
-        "EURGBP=X", "EURJPY=X", "GBPJPY=X", "AUDJPY=X",
         # Metales y Materias Primas
         "GC=F (Oro / XAU)", "SI=F (Plata)", "CL=F (Petróleo Crudo)",
         # Criptomonedas
-        "BTC-USD", "ETH-USD", "BNB-USD", "XRP-USD", "SOL-USD", "ADA-USD",
-        # Índices Bursátiles Globales
-        "^GSPC (S&P 500)", "^DJI (Dow Jones)", "^IXIC (NASDAQ)", "^FTSE (FTSE 100)"
+        "BTC-USD", "ETH-USD", "BNB-USD", "XRP-USD", "SOL-USD"
     ]
 )
 
@@ -38,26 +36,35 @@ temporalidad = st.sidebar.selectbox(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.info("💡 **Modo Independiente:** No requiere inicio de sesión en brókeres cerrados. Los datos se obtienen de feeds financieros públicos.")
+st.sidebar.info("💡 **Nota sobre activos OTC:** Dado que los mercados OTC privados de los brókeres no publican datos oficiales en la web abierta, el sistema utiliza el par forex base equivalente en tiempo real para calcular las medias móviles y el RSI con alta precisión.")
 
 # 3. Lógica principal del analizador
 if st.sidebar.button("🚀 Ejecutar Análisis de Mercado"):
-    with st.spinner(f"Obteniendo y procesando datos para {activo}..."):
+    with st.spinner(f"Procesando datos para {activo}..."):
         try:
             import yfinance as yf
             
-            # Mapeo limpio para extraer el símbolo real de Yahoo Finance
+            # Mapear activos OTC al equivalente en Yahoo Finance para obtener el flujo de precios
+            simbolo_map = {
+                "EURUSD_otc": "EURUSD=X",
+                "GBPUSD_otc": "GBPUSD=X",
+                "USDJPY_otc": "USDJPY=X",
+                "AUDUSD_otc": "AUDUSD=X",
+                "EURJPY_otc": "EURJPY=X",
+                "GBPJPY_otc": "GBPJPY=X"
+            }
+            
+            # Limpiar o traducir el símbolo para la consulta
             simbolo_limpio = activo.split(" ")[0]
+            symbol_to_fetch = simbolo_map.get(simbolo_limpio, simbolo_limpio)
             
-            # Descargar datos recientes según la temporalidad
+            # Descargar datos recientes
             periodo = "1d" if temporalidad in ["1m", "5m", "15m"] else "5d"
-            df = yf.download(simbolo_limpio, period=periodo, interval=temporalidad, progress=False)
+            df = yf.download(symbol_to_fetch, period=periodo, interval=temporalidad, progress=False)
             
-            # Validar si se obtuvieron datos
             if df.empty or len(df) < 20:
                 st.warning("⚠️ No hay suficientes datos disponibles para este intervalo en este momento. Intenta con otra temporalidad.")
             else:
-                # Limpiar índice múltiple si yfinance lo devuelve
                 if isinstance(df.columns, pd.MultiIndex):
                     df.columns = df.columns.get_level_values(0)
                 
@@ -89,7 +96,6 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Mercado"):
                 st.subheader("🎯 Resultado del Análisis Técnico")
                 
                 razones = []
-                
                 if ema5_val > ema20_val:
                     razones.append("La EMA rápida (5) está por encima de la EMA lenta (20) (Tendencia Alcista).")
                 else:
@@ -130,4 +136,4 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Mercado"):
         except Exception as e:
             st.error(f"Ocurrió un error al procesar los datos de mercado: {e}")
 else:
-    st.info("👈 Selecciona tu activo preferido en la barra lateral y haz clic en **Ejecutar Análisis de Mercado** para comenzar.")
+    st.info("👈 Selecciona tu activo (incluyendo las opciones **_otc**) en la barra lateral y haz clic en **Ejecutar Análisis de Mercado**.")
