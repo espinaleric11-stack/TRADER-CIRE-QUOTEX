@@ -5,57 +5,64 @@ from datetime import datetime, timedelta, timezone
 
 # 1. Configuración de la interfaz
 st.set_page_config(
-    page_title="Analizador Avanzado - Opciones & OTC", 
-    page_icon="📈", 
+    page_title="CyberTrader - Analizador Avanzado (UTC-3)", 
+    page_icon="⚡", 
     layout="wide"
 )
 
-# Inyectar estilos CSS para imitar la tarjeta del bróker (Fondo oscuro, bordes redondeados y tipografía)
+# 2. Inyectar Estilos CSS Futuristas (Cyberpunk / Neón)
 st.markdown("""
 <style>
+    /* Fondo general de la aplicación */
+    .stApp {
+        background-color: #0a0b10;
+        color: #e0e0e0;
+    }
+    
+    /* Estilo de la tarjeta de activo idéntica al bróker con toque futurista */
     .broker-card {
-        background-color: #111418;
-        border: 1px solid #2a2e39;
-        border-radius: 8px;
-        padding: 12px 16px;
+        background: linear-gradient(135deg, #121420 0%, #1a1d2d 100%);
+        border: 1px solid #00ffcc;
+        border-radius: 12px;
+        padding: 14px 18px;
         display: flex;
         align-items: center;
         justify-content: space-between;
         color: white;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-family: 'Segoe UI', Roboto, sans-serif;
         margin-bottom: 20px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        box-shadow: 0 0 15px rgba(0, 255, 204, 0.2);
     }
     .broker-left {
         display: flex;
         align-items: center;
-        gap: 14px;
+        gap: 16px;
     }
     .flags-container {
         position: relative;
-        width: 42px;
-        height: 32px;
+        width: 44px;
+        height: 34px;
     }
     .flag-1 {
         position: absolute;
         top: 0;
         left: 0;
-        width: 26px;
-        height: 26px;
+        width: 28px;
+        height: 28px;
         border-radius: 50%;
         object-fit: cover;
-        border: 2px solid #111418;
+        border: 2px solid #121420;
         z-index: 2;
     }
     .flag-2 {
         position: absolute;
         bottom: 0;
         right: 0;
-        width: 26px;
-        height: 26px;
+        width: 28px;
+        height: 28px;
         border-radius: 50%;
         object-fit: cover;
-        border: 2px solid #111418;
+        border: 2px solid #121420;
         z-index: 1;
     }
     .asset-info {
@@ -63,28 +70,60 @@ st.markdown("""
         flex-direction: column;
     }
     .asset-title {
-        font-size: 17px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: 1px;
         color: #ffffff;
+        text-shadow: 0 0 8px rgba(255,255,255,0.4);
     }
     .asset-profit {
         font-size: 14px;
         font-weight: 700;
-        color: #ff9800;
+        color: #ffaa00;
+        text-shadow: 0 0 6px rgba(255, 170, 0, 0.5);
         margin-top: 2px;
     }
     .broker-arrow {
         font-size: 18px;
-        color: #b0b3b8;
+        color: #00ffcc;
+    }
+
+    /* Títulos con brillo neón */
+    h1, h2, h3 {
+        color: #00ffcc !important;
+        font-family: 'Segoe UI', Roboto, sans-serif;
+        text-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
+    }
+
+    /* Botones futuristas */
+    .stButton>button {
+        background: linear-gradient(90deg, #00ffcc 0%, #0099ff 100%);
+        color: #0a0b10;
+        font-weight: 800;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem 1.2rem;
+        box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
+        transition: 0.3s ease;
+    }
+    .stButton>button:hover {
+        opacity: 0.9;
+        box-shadow: 0 0 25px rgba(0, 255, 204, 0.8);
+        transform: scale(1.02);
+    }
+
+    /* Métricas con diseño holográfico */
+    [data-testid="stMetricValue"] {
+        color: #00ffcc !important;
+        text-shadow: 0 0 8px rgba(0, 255, 204, 0.4);
     }
 </style>
 """, unsafe_allow_html=True)
 
-st.title("📈 Analizador Técnico Avanzado de Alta Precisión (UTC-3)")
-st.markdown("Herramienta optimizada con **Medias Móviles (EMA)**, **RSI**, **Bandas de Bollinger** y **Filtro de Volatilidad (ATR)**.")
+st.title("⚡ CYBER-TRADER // QUANTUM ENGINE (UTC-3)")
+st.markdown("Sistema de análisis cuántico independiente con **EMA**, **RSI**, **Bandas de Bollinger** y **Filtro ATR** en tiempo real.")
 
-# 2. Diccionario de activos con URLs de sus respectivas banderas circulares oficiales
+# 3. Diccionario de activos con URLs de sus respectivas banderas circulares oficiales
 activos_info = {
     "USD/CAD (OTC)": {"symbol": "USDCAD=X", "flag1": "https://flagcdn.com/w80/us.png", "flag2": "https://flagcdn.com/w80/ca.png", "profit": "84%"},
     "EUR/USD (OTC)": {"symbol": "EURUSD=X", "flag1": "https://flagcdn.com/w80/eu.png", "flag2": "https://flagcdn.com/w80/us.png", "profit": "82%"},
@@ -94,7 +133,6 @@ activos_info = {
     "EUR/JPY (OTC)": {"symbol": "EURJPY=X", "flag1": "https://flagcdn.com/w80/eu.png", "flag2": "https://flagcdn.com/w80/jp.png", "profit": "81%"},
     "GBP/JPY (OTC)": {"symbol": "GBPJPY=X", "flag1": "https://flagcdn.com/w80/gb.png", "flag2": "https://flagcdn.com/w80/jp.png", "profit": "78%"},
     "EUR/GBP (OTC)": {"symbol": "EURGBP=X", "flag1": "https://flagcdn.com/w80/eu.png", "flag2": "https://flagcdn.com/w80/gb.png", "profit": "84%"},
-    # Pares normales y otros
     "EUR/USD": {"symbol": "EURUSD=X", "flag1": "https://flagcdn.com/w80/eu.png", "flag2": "https://flagcdn.com/w80/us.png", "profit": "75%"},
     "GBP/USD": {"symbol": "GBPUSD=X", "flag1": "https://flagcdn.com/w80/gb.png", "flag2": "https://flagcdn.com/w80/us.png", "profit": "75%"},
     "USD/JPY": {"symbol": "USDJPY=X", "flag1": "https://flagcdn.com/w80/us.png", "flag2": "https://flagcdn.com/w80/jp.png", "profit": "75%"},
@@ -102,7 +140,7 @@ activos_info = {
 }
 
 # Panel lateral de configuración
-st.sidebar.header("Parámetros de Análisis")
+st.sidebar.header("⚙️ Configuración del Núcleo")
 
 activo_seleccionado = st.sidebar.selectbox(
     "Seleccionar Activo / Par", 
@@ -115,9 +153,9 @@ temporalidad = st.sidebar.selectbox(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.info("💡 **Apariencia Estilo Bróker:** Visualización idéntica con banderas y rentabilidad sincronizada.")
+st.sidebar.info("💡 **Interfaz Cyber:** Estética adaptada con diseño de terminal y sincronización UTC-3.")
 
-# --- RENDERIZAR LA TARJETA VISUAL IDÉNTICA AL BRÓKER EN LA PANTALLA PRINCIPAL ---
+# --- RENDERIZAR LA TARJETA VISUAL IDÉNTICA AL BRÓKER ---
 info_actual = activos_info[activo_seleccionado]
 
 st.markdown(f"""
@@ -129,16 +167,16 @@ st.markdown(f"""
         </div>
         <div class="asset-info">
             <span class="asset-title">{activo_seleccionado}</span>
-            <span class="asset-profit">{info_actual['profit']}</span>
+            <span class="asset-profit">PAGO: {info_actual['profit']}</span>
         </div>
     </div>
     <div class="broker-arrow">▼</div>
 </div>
 """, unsafe_allow_html=True)
 
-# 3. Lógica principal del analizador
-if st.sidebar.button("🚀 Ejecutar Análisis de Alta Precisión"):
-    with st.spinner(f"Procesando indicadores avanzados para {activo_seleccionado}..."):
+# 4. Lógica principal del analizador
+if st.sidebar.button("🚀 INICIAR ESCANEO CUÁNTICO"):
+    with st.spinner(f"Sincronizando matrices de datos para {activo_seleccionado}..."):
         try:
             import yfinance as yf
             
@@ -147,7 +185,7 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Alta Precisión"):
             df = yf.download(symbol_to_fetch, period=periodo, interval=temporalidad, progress=False)
             
             if df.empty or len(df) < 25:
-                st.warning("⚠️ No hay suficientes datos disponibles para este intervalo en este momento. Intenta con otra temporalidad.")
+                st.warning("⚠️ Datos insuficientes en este intervalo temporal. Intenta cambiar de temporalidad.")
             else:
                 if isinstance(df.columns, pd.MultiIndex):
                     df.columns = df.columns.get_level_values(0)
@@ -207,7 +245,7 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Alta Precisión"):
                 st.markdown("---")
                 
                 # --- MOTOR DE DECISIÓN DE ALTA CONFLUENCIA ---
-                st.subheader(f"🎯 Resultado del Análisis Avanzado para: {activo_seleccionado}")
+                st.subheader(f"🎯 Diagnóstico Cuántico para: {activo_seleccionado}")
                 
                 razones = []
                 tendencia_alcista = ema5_val > ema20_val
@@ -231,7 +269,7 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Alta Precisión"):
                     st.write("Filtros superados: Cruce bajista confirmado con resistencia en zona media/alta de Bollinger.")
                 else:
                     st.warning(f"### ⚪ FILTRADO: MERCADO EN ZONA NEUTRAL O RUIDO")
-                    st.write("El sistema ha descartado la operación para proteger tu capital. No hay confluencia clara.")
+                    st.write("El sistema ha neutralizado la operación para proteger capital. No hay confluencia exacta.")
                 
                 with st.expander("🔍 Ver detalles técnicos de los filtros"):
                     for r in razones:
@@ -241,14 +279,14 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Alta Precisión"):
                 
                 # --- GRÁFICA VISUAL ---
                 st.markdown("---")
-                st.subheader("📊 Gráfica de Precio con Bandas de Bollinger")
+                st.subheader("📊 Gráfica Cuántica de Precios y Bollinger")
                 df_chart = df[['Close', 'BB_Upper', 'BB_Middle', 'BB_Lower']].tail(50)
                 st.line_chart(df_chart)
                 
-                with st.expander("Ver tabla histórica detallada"):
+                with st.expander("Ver matriz de datos históricos"):
                     st.dataframe(df[['Close', 'EMA_5', 'EMA_20', 'RSI', 'ATR']].tail(10))
 
         except Exception as e:
-            st.error(f"Ocurrió un error al procesar los datos de mercado: {e}")
+            st.error(f"Error crítico en el procesamiento de datos: {e}")
 else:
-    st.info("👈 Selecciona tu activo en la barra lateral y haz clic en **Ejecutar Análisis de Alta Precisión**.")
+    st.info("👈 Selecciona tu activo en la barra lateral y haz clic en **INICIAR ESCANEO CUÁNTICO**.")
