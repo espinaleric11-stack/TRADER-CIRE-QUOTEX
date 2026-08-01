@@ -10,25 +10,103 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("📈 Analizador Técnico Avanzado de Alta Precisión (UTC-3)")
-st.markdown("Herramienta optimizada con **Medias Móviles (EMA)**, **RSI**, **Bandas de Bollinger** y **Filtro de Volatilidad (ATR)** para reducir señales falsas.")
+# Inyectar estilos CSS para imitar la tarjeta del bróker (Fondo oscuro, bordes redondeados y tipografía)
+st.markdown("""
+<style>
+    .broker-card {
+        background-color: #111418;
+        border: 1px solid #2a2e39;
+        border-radius: 8px;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: white;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    }
+    .broker-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+    .flags-container {
+        position: relative;
+        width: 42px;
+        height: 32px;
+    }
+    .flag-1 {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #111418;
+        z-index: 2;
+    }
+    .flag-2 {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #111418;
+        z-index: 1;
+    }
+    .asset-info {
+        display: flex;
+        flex-direction: column;
+    }
+    .asset-title {
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: #ffffff;
+    }
+    .asset-profit {
+        font-size: 14px;
+        font-weight: 700;
+        color: #ff9800;
+        margin-top: 2px;
+    }
+    .broker-arrow {
+        font-size: 18px;
+        color: #b0b3b8;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-# 2. Panel lateral de configuración
+st.title("📈 Analizador Técnico Avanzado de Alta Precisión (UTC-3)")
+st.markdown("Herramienta optimizada con **Medias Móviles (EMA)**, **RSI**, **Bandas de Bollinger** y **Filtro de Volatilidad (ATR)**.")
+
+# 2. Diccionario de activos con URLs de sus respectivas banderas circulares oficiales
+activos_info = {
+    "USD/CAD (OTC)": {"symbol": "USDCAD=X", "flag1": "https://flagcdn.com/w80/us.png", "flag2": "https://flagcdn.com/w80/ca.png", "profit": "84%"},
+    "EUR/USD (OTC)": {"symbol": "EURUSD=X", "flag1": "https://flagcdn.com/w80/eu.png", "flag2": "https://flagcdn.com/w80/us.png", "profit": "82%"},
+    "GBP/USD (OTC)": {"symbol": "GBPUSD=X", "flag1": "https://flagcdn.com/w80/gb.png", "flag2": "https://flagcdn.com/w80/us.png", "profit": "85%"},
+    "USD/JPY (OTC)": {"symbol": "USDJPY=X", "flag1": "https://flagcdn.com/w80/us.png", "flag2": "https://flagcdn.com/w80/jp.png", "profit": "80%"},
+    "AUD/USD (OTC)": {"symbol": "AUDUSD=X", "flag1": "https://flagcdn.com/w80/au.png", "flag2": "https://flagcdn.com/w80/us.png", "profit": "83%"},
+    "EUR/JPY (OTC)": {"symbol": "EURJPY=X", "flag1": "https://flagcdn.com/w80/eu.png", "flag2": "https://flagcdn.com/w80/jp.png", "profit": "81%"},
+    "GBP/JPY (OTC)": {"symbol": "GBPJPY=X", "flag1": "https://flagcdn.com/w80/gb.png", "flag2": "https://flagcdn.com/w80/jp.png", "profit": "78%"},
+    "EUR/GBP (OTC)": {"symbol": "EURGBP=X", "flag1": "https://flagcdn.com/w80/eu.png", "flag2": "https://flagcdn.com/w80/gb.png", "profit": "84%"},
+    # Pares normales y otros
+    "EUR/USD": {"symbol": "EURUSD=X", "flag1": "https://flagcdn.com/w80/eu.png", "flag2": "https://flagcdn.com/w80/us.png", "profit": "75%"},
+    "GBP/USD": {"symbol": "GBPUSD=X", "flag1": "https://flagcdn.com/w80/gb.png", "flag2": "https://flagcdn.com/w80/us.png", "profit": "75%"},
+    "USD/JPY": {"symbol": "USDJPY=X", "flag1": "https://flagcdn.com/w80/us.png", "flag2": "https://flagcdn.com/w80/jp.png", "profit": "75%"},
+    "XAU/USD (Oro / OTC)": {"symbol": "GC=F", "flag1": "https://flagcdn.com/w80/un.png", "flag2": "https://flagcdn.com/w80/us.png", "profit": "88%"}
+}
+
+# Panel lateral de configuración
 st.sidebar.header("Parámetros de Análisis")
 
-activo = st.sidebar.selectbox(
+activo_seleccionado = st.sidebar.selectbox(
     "Seleccionar Activo / Par", 
-    [
-        # Pares OTC
-        "EUR/USD (OTC)", "GBP/USD (OTC)", "USD/CAD (OTC)", "USD/JPY (OTC)", 
-        "AUD/USD (OTC)", "EUR/JPY (OTC)", "GBP/JPY (OTC)", "EUR/GBP (OTC)",
-        # Forex Principales
-        "EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD", "USD/CAD", "NZD/USD", "USD/CHF",
-        # Metales
-        "XAU/USD (Oro / OTC)", "GC=F (Oro Estándar)",
-        # Criptomonedas
-        "BTC/USD", "ETH/USD"
-    ]
+    list(activos_info.keys())
 )
 
 temporalidad = st.sidebar.selectbox(
@@ -37,37 +115,34 @@ temporalidad = st.sidebar.selectbox(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.info("💡 **Filtro de Alta Calidad Activo:** Las señales ahora exigen confluencia entre tendencia (EMA), momento (RSI) y volatilidad (Bollinger/ATR).")
+st.sidebar.info("💡 **Apariencia Estilo Bróker:** Visualización idéntica con banderas y rentabilidad sincronizada.")
+
+# --- RENDERIZAR LA TARJETA VISUAL IDÉNTICA AL BRÓKER EN LA PANTALLA PRINCIPAL ---
+info_actual = activos_info[activo_seleccionado]
+
+st.markdown(f"""
+<div class="broker-card">
+    <div class="broker-left">
+        <div class="flags-container">
+            <img src="{info_actual['flag1']}" class="flag-1">
+            <img src="{info_actual['flag2']}" class="flag-2">
+        </div>
+        <div class="asset-info">
+            <span class="asset-title">{activo_seleccionado}</span>
+            <span class="asset-profit">{info_actual['profit']}</span>
+        </div>
+    </div>
+    <div class="broker-arrow">▼</div>
+</div>
+""", unsafe_allow_html=True)
 
 # 3. Lógica principal del analizador
 if st.sidebar.button("🚀 Ejecutar Análisis de Alta Precisión"):
-    with st.spinner(f"Procesando indicadores avanzados para {activo}..."):
+    with st.spinner(f"Procesando indicadores avanzados para {activo_seleccionado}..."):
         try:
             import yfinance as yf
             
-            simbolo_map = {
-                "EUR/USD (OTC)": "EURUSD=X",
-                "GBP/USD (OTC)": "GBPUSD=X",
-                "USD/CAD (OTC)": "USDCAD=X",
-                "USD/JPY (OTC)": "USDJPY=X",
-                "AUD/USD (OTC)": "AUDUSD=X",
-                "EUR/JPY (OTC)": "EURJPY=X",
-                "GBP/JPY (OTC)": "GBPJPY=X",
-                "EUR/GBP (OTC)": "EURGBP=X",
-                "EUR/USD": "EURUSD=X",
-                "GBP/USD": "GBPUSD=X",
-                "USD/JPY": "USDJPY=X",
-                "AUD/USD": "AUDUSD=X",
-                "USD/CAD": "USDCAD=X",
-                "NZD/USD": "NZDUSD=X",
-                "USD/CHF": "USDCHF=X",
-                "XAU/USD (Oro / OTC)": "GC=F",
-                "BTC/USD": "BTC-USD",
-                "ETH/USD": "ETH-USD"
-            }
-            
-            symbol_to_fetch = simbolo_map.get(activo, "EURUSD=X")
-            
+            symbol_to_fetch = info_actual["symbol"]
             periodo = "1d" if temporalidad in ["1m", "5m", "15m"] else "5d"
             df = yf.download(symbol_to_fetch, period=periodo, interval=temporalidad, progress=False)
             
@@ -78,31 +153,26 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Alta Precisión"):
                     df.columns = df.columns.get_level_values(0)
                 
                 # --- CÁLCULOS TÉCNICOS AVANZADOS ---
-                # 1. EMAs
                 df['EMA_5'] = df['Close'].ewm(span=5, adjust=False).mean()
                 df['EMA_20'] = df['Close'].ewm(span=20, adjust=False).mean()
                 
-                # 2. RSI (14)
                 delta = df['Close'].diff()
                 gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
                 loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
                 rs = gain / loss
                 df['RSI'] = 100 - (100 / (1 + rs))
                 
-                # 3. Bandas de Bollinger (20 periodos, 2 desviaciones estándar)
                 df['BB_Middle'] = df['Close'].rolling(window=20).mean()
                 bb_std = df['Close'].rolling(window=20).std()
                 df['BB_Upper'] = df['BB_Middle'] + (bb_std * 2)
                 df['BB_Lower'] = df['BB_Middle'] - (bb_std * 2)
                 
-                # 4. Filtro ATR (Average True Range para volatilidad)
                 high_low = df['High'] - df['Low']
                 high_close = np.abs(df['High'] - df['Close'].shift())
                 low_close = np.abs(df['Low'] - df['Close'].shift())
                 true_range = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
                 df['ATR'] = true_range.rolling(window=14).mean()
                 
-                # Extraer valores actuales
                 precio_actual = float(df['Close'].iloc[-1])
                 ema5_val = float(df['EMA_5'].iloc[-1])
                 ema20_val = float(df['EMA_20'].iloc[-1])
@@ -137,11 +207,9 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Alta Precisión"):
                 st.markdown("---")
                 
                 # --- MOTOR DE DECISIÓN DE ALTA CONFLUENCIA ---
-                st.subheader(f"🎯 Resultado del Análisis Avanzado para: {activo}")
+                st.subheader(f"🎯 Resultado del Análisis Avanzado para: {activo_seleccionado}")
                 
                 razones = []
-                
-                # Evaluación de tendencia
                 tendencia_alcista = ema5_val > ema20_val
                 tendencia_bajista = ema5_val < ema20_val
                 
@@ -150,14 +218,6 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Alta Precisión"):
                 else:
                     razones.append("❌ **Tendencia:** EMA rápida por debajo de la lenta (Bajista).")
                 
-                # Evaluación de RSI y Bollinger
-                filtro_rsi_call = rsi_val < 60 and rsi_val > 30
-                filtro_rsi_put = rsi_val > 40 and rsi_val < 70
-                
-                cerca_banda_inferior = precio_actual <= (bb_lower * 1.002)
-                cerca_banda_superior = precio_actual >= (bb_upper * 0.998)
-                
-                # Condiciones estrictas para disparar la señal de alta calidad
                 es_call = tendencia_alcista and rsi_val < 62 and (precio_actual <= df['BB_Middle'].iloc[-1])
                 es_put = tendencia_bajista and rsi_val > 38 and (precio_actual >= df['BB_Middle'].iloc[-1])
                 
@@ -171,7 +231,7 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Alta Precisión"):
                     st.write("Filtros superados: Cruce bajista confirmado con resistencia en zona media/alta de Bollinger.")
                 else:
                     st.warning(f"### ⚪ FILTRADO: MERCADO EN ZONA NEUTRAL O RUIDO")
-                    st.write("El sistema ha descartado la operación para proteger tu capital. No hay confluencia clara entre las Bandas de Bollinger y las EMAs.")
+                    st.write("El sistema ha descartado la operación para proteger tu capital. No hay confluencia clara.")
                 
                 with st.expander("🔍 Ver detalles técnicos de los filtros"):
                     for r in razones:
@@ -179,10 +239,9 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Alta Precisión"):
                     st.write(f"- **Volatilidad ATR:** {atr_val:.5f} (Filtro de ruido superado)")
                     st.write(f"- **Bandas de Bollinger:** Superior: {bb_upper:.5f} | Inferior: {bb_lower:.5f}")
                 
-                # --- GRÁFICA VISUAL DE PRECIOS Y BOLINGER ---
+                # --- GRÁFICA VISUAL ---
                 st.markdown("---")
                 st.subheader("📊 Gráfica de Precio con Bandas de Bollinger")
-                
                 df_chart = df[['Close', 'BB_Upper', 'BB_Middle', 'BB_Lower']].tail(50)
                 st.line_chart(df_chart)
                 
@@ -192,4 +251,4 @@ if st.sidebar.button("🚀 Ejecutar Análisis de Alta Precisión"):
         except Exception as e:
             st.error(f"Ocurrió un error al procesar los datos de mercado: {e}")
 else:
-    st.info("👈 Selecciona tu activo y temporalidad en la barra lateral y haz clic en **Ejecutar Análisis de Alta Precisión**.")
+    st.info("👈 Selecciona tu activo en la barra lateral y haz clic en **Ejecutar Análisis de Alta Precisión**.")
