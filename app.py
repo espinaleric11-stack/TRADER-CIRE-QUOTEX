@@ -1,56 +1,24 @@
-import sys
-import types
-
-# 1. Parche de compatibilidad para distutils.version (necesario en entornos modernos)
-if "distutils" not in sys.modules:
-    distutils_mod = types.ModuleType("distutils")
-    distutils_version = types.ModuleType("distutils.version")
-    
-    class LooseVersion:
-        def __init__(self, vstring=None):
-            self.vstring = vstring
-            self.version = [int(x) for x in vstring.split(".") if x.isdigit()] if vstring else []
-            
-        def __str__(self):
-            return self.vstring or ""
-        def __repr__(self):
-            return f"LooseVersion ('{self.vstring}')"
-        def _cmp(self, other):
-            if isinstance(other, LooseVersion):
-                return 0
-            return -1
-        def __lt__(self, other): return self._cmp(other) < 0
-        def __le__(self, other): return self._cmp(other) <= 0
-        def __gt__(self, other): return self._cmp(other) > 0
-        def __ge__(self, other): return self._cmp(other) >= 0
-        def __eq__(self, other): return self._cmp(other) == 0
-        def __ne__(self, other): return self._cmp(other) != 0
-
-    distutils_version.LooseVersion = LooseVersion
-    sys.modules["distutils"] = distutils_mod
-    sys.modules["distutils.version"] = distutils_version
-
 import streamlit as st
 import asyncio
 import pandas as pd
 
-# 2. Configuración visual de la interfaz
+# Configuración visual de la interfaz
 st.set_page_config(page_title="Señales Quotex", page_icon="📈", layout="centered")
 
 st.title("📈 Generador de Señales - Quotex")
 st.write("Conéctate para analizar el mercado de opciones binarias en tiempo real.")
 
-# 3. Panel lateral para credenciales y parámetros
+# Panel lateral para credenciales y parámetros
 st.sidebar.header("Configuración de Cuenta")
 email = st.sidebar.text_input("Correo de Quotex")
-password = st.sidebar.text_input("Contraseña", type="password")
+password = st.sidebar.text_input("Contraseña", type="password", value="")
 activo = st.sidebar.selectbox("Activo a operar", ["EURUSD", "GBPUSD", "EURUSD_otc", "XAUUSD_otc"])
 
 # Inicializar variables de estado
 if "conectado" not in st.session_state:
     st.session_state.conectado = False
 
-# 4. Lógica de conexión segura
+# Lógica de conexión segura
 if st.sidebar.button("Conectar al Bróker"):
     if not email or not password:
         st.warning("⚠️ Por favor ingresa tu correo y contraseña en la barra lateral.")
@@ -59,6 +27,37 @@ if st.sidebar.button("Conectar al Bróker"):
             
             async def test_conexion():
                 try:
+                    # PARCHE INTERNO: Se aplica aquí dentro para que afecte al hilo de conexión
+                    import sys
+                    import types
+                    if "distutils" not in sys.modules:
+                        distutils_mod = types.ModuleType("distutils")
+                        distutils_version = types.ModuleType("distutils.version")
+                        
+                        class LooseVersion:
+                            def __init__(self, vstring=None):
+                                self.vstring = vstring
+                                self.version = [int(x) for x in vstring.split(".") if x.isdigit()] if vstring else []
+                                
+                            def __str__(self):
+                                return self.vstring or ""
+                            def __repr__(self):
+                                return f"LooseVersion ('{self.vstring}')"
+                            def _cmp(self, other):
+                                if isinstance(other, LooseVersion):
+                                    return 0
+                                return -1
+                            def __lt__(self, other): return self._cmp(other) < 0
+                            def __le__(self, other): return self._cmp(other) <= 0
+                            def __gt__(self, other): return self._cmp(other) > 0
+                            def __ge__(self, other): return self._cmp(other) >= 0
+                            def __eq__(self, other): return self._cmp(other) == 0
+                            def __ne__(self, other): return self._cmp(other) != 0
+
+                        distutils_version.LooseVersion = LooseVersion
+                        sys.modules["distutils"] = distutils_mod
+                        sys.modules["distutils.version"] = distutils_version
+
                     from quotexpy import Quotex
                     client = Quotex(email=email, password=password)
                     check, reason = await client.connect()
@@ -66,7 +65,6 @@ if st.sidebar.button("Conectar al Bróker"):
                 except Exception as e:
                     return False, str(e), None
 
-            # Ejecutar de forma segura la corrutina
             exito, mensaje, cliente_quotex = asyncio.run(test_conexion())
 
             if exito:
@@ -76,7 +74,7 @@ if st.sidebar.button("Conectar al Bróker"):
             else:
                 st.error(f"❌ Error al conectar: {mensaje}")
 
-# 5. Panel principal una vez conectado
+# Panel principal una vez conectado
 if st.session_state.get("conectado", False):
     st.info(f"🟢 Sesión activa para el activo: **{activo}**")
     
@@ -86,7 +84,6 @@ if st.session_state.get("conectado", False):
             async def obtener_datos():
                 try:
                     client = st.session_state.client
-                    # Obtener velas de 1 minuto (60 segundos)
                     candles = await client.get_candles(activo, 60)
                     return candles
                 except Exception as e:
@@ -97,7 +94,6 @@ if st.session_state.get("conectado", False):
             if candles_data:
                 df = pd.DataFrame(candles_data)
                 
-                # Cálculo básico de estrategia (EMA rápida y lenta)
                 df['EMA_5'] = df['close'].ewm(span=5, adjust=False).mean()
                 df['EMA_20'] = df['close'].ewm(span=20, adjust=False).mean()
                 
@@ -107,7 +103,6 @@ if st.session_state.get("conectado", False):
                 
                 st.write(f"**Precio actual del activo:** {precio_actual}")
                 
-                # Generar señal visual simple basada en tendencia de medias
                 if ema5_val > ema20_val:
                     st.markdown("### 🟢 SEÑAL SUGERIDA: **CALL (COMPRA / SUBIR)**")
                     st.info("La media rápida está por encima de la lenta.")
