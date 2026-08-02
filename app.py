@@ -6,7 +6,7 @@ import streamlit as st
 
 # 1. Configuración de la interfaz
 st.set_page_config(
-    page_title="CyberTrader // Quotex Master Signal Radar (OTC)",
+    page_title="CyberTrader // Quotex Master Signal Radar (Multi-TF OTC)",
     page_icon="⚡",
     layout="wide",
 )
@@ -114,7 +114,9 @@ st.markdown(
         <span class="cyber-icon">⚡</span>
         <div>
             <p class="cyber-title-text">CYBER-TRADER MASTER SCANNER</p>
-            <p class="cyber-subtitle">Escáner Exclusivo de Activos OTC en Quotex</p>
+            <p class="cyber-subtitle">
+              Escáner Multi-Temporalidad Exclusivo OTC en Quotex
+            </p>
         </div>
     </div>
     <div class="utc-badge">
@@ -125,7 +127,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Lista completa y actualizada de Activos OTC (Divisas principales + Exóticos y Latam)
+# Lista completa de Activos OTC
 activos_quotex = {
     "EUR/USD (OTC)": {"symbol": "EURUSD=X", "profit": "82%"},
     "GBP/USD (OTC)": {"symbol": "GBPUSD=X", "profit": "85%"},
@@ -139,30 +141,12 @@ activos_quotex = {
     "NZD/USD (OTC)": {"symbol": "NZDUSD=X", "profit": "79%"},
     "USD/NZD (OTC)": {"symbol": "NZDUSD=X", "profit": "80%"},
     "USD/BDT (OTC)": {"symbol": "EURUSD=X", "profit": "85%"},
-    "USD/ARS (OTC)": {
-        "symbol": "USDCAD=X",
-        "profit": "85%",
-    },  # Agregado Latam / Exótico
-    "USD/BRL (OTC)": {
-        "symbol": "USDCAD=X",
-        "profit": "82%",
-    },  # Agregado Latam / Exótico
-    "USD/MXN (OTC)": {
-        "symbol": "USDJPY=X",
-        "profit": "84%",
-    },  # Agregado Latam / Exótico
-    "USD/COP (OTC)": {
-        "symbol": "EURUSD=X",
-        "profit": "83%",
-    },  # Agregado Latam / Exótico
-    "USD/CLP (OTC)": {
-        "symbol": "USDJPY=X",
-        "profit": "81%",
-    },  # Agregado Latam / Exótico
-    "USD/INR (OTC)": {
-        "symbol": "GBPUSD=X",
-        "profit": "80%",
-    },  # Agregado Exótico
+    "USD/ARS (OTC)": {"symbol": "USDCAD=X", "profit": "85%"},
+    "USD/BRL (OTC)": {"symbol": "USDCAD=X", "profit": "82%"},
+    "USD/MXN (OTC)": {"symbol": "USDJPY=X", "profit": "84%"},
+    "USD/COP (OTC)": {"symbol": "EURUSD=X", "profit": "83%"},
+    "USD/CLP (OTC)": {"symbol": "USDJPY=X", "profit": "81%"},
+    "USD/INR (OTC)": {"symbol": "GBPUSD=X", "profit": "80%"},
     "CHF/JPY (OTC)": {"symbol": "CHFJPY=X", "profit": "79%"},
     "EUR/AUD (OTC)": {"symbol": "EURAUD=X", "profit": "81%"},
     "CAD/JPY (OTC)": {"symbol": "CADJPY=X", "profit": "82%"},
@@ -176,8 +160,10 @@ activos_quotex = {
 
 # --- PANEL LATERAL DE CONFIGURACIÓN ---
 st.sidebar.header("⚙️ Configuración Global")
-temporalidad = st.sidebar.selectbox(
-    "Temporalidad de las Velas", ["1m", "5m", "15m", "1h"]
+
+opcion_temporalidad = st.sidebar.selectbox(
+    "Temporalidad de las Velas",
+    ["🌐 Todas las Temporalidades (Multi-TF)", "1m", "5m", "15m", "1h"],
 )
 
 # Selector de Nivel de Estricción
@@ -215,135 +201,146 @@ st.sidebar.markdown(
 )
 
 
-# Función de escaneo masivo exclusivo OTC
+# Función de escaneo masivo multi-temporalidad
 def escanear_todos_los_activos():
   import yfinance as yf
 
   with st.spinner(
-      f"🔍 Analizando activos OTC bajo modo: {nivel_estriccion}..."
+      f"🔍 Analizando activos bajo modo: {nivel_estriccion} (Multi-TF)..."
   ):
     tz_utc_minus_3 = timezone(timedelta(hours=-3))
     ahora_utc3 = datetime.now(tz_utc_minus_3)
     hora_actual_str = ahora_utc3.strftime("%H:%M:%S")
 
-    minutos_map = {"1m": 1, "5m": 5, "15m": 15, "1h": 60}
-    minutos_add = minutos_map.get(temporalidad, 1)
-    segundos_totales = minutos_add * 60
-    timestamp_siguiente_vela = (
-        (ahora_utc3.timestamp() // segundos_totales) + 1
-    ) * segundos_totales
-    siguiente_vela_dt = datetime.fromtimestamp(
-        timestamp_siguiente_vela, tz_utc_minus_3
-    )
-    hora_entrada_str = siguiente_vela_dt.strftime("%H:%M:%S")
+    # Definir qué temporalidades se van a escanear
+    if "Todas" in opcion_temporalidad:
+      lista_temporalidades = ["1m", "5m", "15m", "1h"]
+    else:
+      lista_temporalidades = [opcion_temporalidad]
 
     resultados_temporales = {}
 
     for nombre_activo, data in activos_quotex.items():
-      try:
-        symbol = data["symbol"]
-        periodo = "1d" if temporalidad in ["1m", "5m", "15m"] else "5d"
-        df = yf.download(
-            symbol, period=periodo, interval=temporalidad, progress=False
-        )
+      symbol = data["symbol"]
+      for temp in lista_temporalidades:
+        try:
+          periodo = "1d" if temp in ["1m", "5m", "15m"] else "5d"
+          df = yf.download(
+              symbol, period=periodo, interval=temp, progress=False
+          )
 
-        if df.empty or len(df) < 30:
-          continue
+          if df.empty or len(df) < 30:
+            continue
 
-        if isinstance(df.columns, pd.MultiIndex):
-          df.columns = df.columns.get_level_values(0)
+          if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
 
-        # Indicadores Técnicos
-        df["EMA_5"] = df["Close"].ewm(span=5, adjust=False).mean()
-        df["EMA_20"] = df["Close"].ewm(span=20, adjust=False).mean()
+          # Cálculo de hora de entrada según la temporalidad evaluada
+          minutos_map = {"1m": 1, "5m": 5, "15m": 15, "1h": 60}
+          minutos_add = minutos_map.get(temp, 1)
+          segundos_totales = minutos_add * 60
+          timestamp_siguiente_vela = (
+              (ahora_utc3.timestamp() // segundos_totales) + 1
+          ) * segundos_totales
+          siguiente_vela_dt = datetime.fromtimestamp(
+              timestamp_siguiente_vela, tz_utc_minus_3
+          )
+          hora_entrada_str = siguiente_vela_dt.strftime("%H:%M:%S")
 
-        delta = df["Close"].diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-        rs = gain / loss
-        df["RSI"] = 100 - (100 / (1 + rs))
+          # Indicadores Técnicos
+          df["EMA_5"] = df["Close"].ewm(span=5, adjust=False).mean()
+          df["EMA_20"] = df["Close"].ewm(span=20, adjust=False).mean()
 
-        df["BB_Middle"] = df["Close"].rolling(window=20).mean()
-        bb_std = df["Close"].rolling(window=20).std()
-        df["BB_Upper"] = df["BB_Middle"] + (bb_std * 2)
-        df["BB_Lower"] = df["BB_Middle"] - (bb_std * 2)
+          delta = df["Close"].diff()
+          gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+          loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+          rs = gain / loss
+          df["RSI"] = 100 - (100 / (1 + rs))
 
-        high_low = df["High"] - df["Low"]
-        high_close = np.abs(df["High"] - df["Close"].shift())
-        low_close = np.abs(df["Low"] - df["Close"].shift())
-        true_range = pd.concat([high_low, high_close, low_close], axis=1).max(
-            axis=1
-        )
-        df["ATR"] = true_range.rolling(window=14).mean()
+          df["BB_Middle"] = df["Close"].rolling(window=20).mean()
+          bb_std = df["Close"].rolling(window=20).std()
+          df["BB_Upper"] = df["BB_Middle"] + (bb_std * 2)
+          df["BB_Lower"] = df["BB_Middle"] - (bb_std * 2)
 
-        precio_actual = float(df["Close"].iloc[-1])
-        ema5_val = float(df["EMA_5"].iloc[-1])
-        ema20_val = float(df["EMA_20"].iloc[-1])
-        rsi_val = (
-            float(df["RSI"].iloc[-1])
-            if not np.isnan(df["RSI"].iloc[-1])
-            else 50.0
-        )
-        bb_lower = float(df["BB_Lower"].iloc[-1])
-        bb_upper = float(df["BB_Upper"].iloc[-1])
-        atr_val = (
-            float(df["ATR"].iloc[-1])
-            if not np.isnan(df["ATR"].iloc[-1])
-            else 0.0
-        )
+          high_low = df["High"] - df["Low"]
+          high_close = np.abs(df["High"] - df["Close"].shift())
+          low_close = np.abs(df["Low"] - df["Close"].shift())
+          true_range = pd.concat(
+              [high_low, high_close, low_close], axis=1
+          ).max(axis=1)
+          df["ATR"] = true_range.rolling(window=14).mean()
 
-        # Configuración de umbrales según el nivel de estricción seleccionado
-        if "Conservador" in nivel_estriccion:
-          rsi_call, rsi_put = 38, 62
-          mult_atr = 0.25
-        elif "Agresivo" in nivel_estriccion:
-          rsi_call, rsi_put = 46, 54
-          mult_atr = 0.60
-        else:  # Moderado
-          rsi_call, rsi_put = 42, 58
-          mult_atr = 0.40
+          precio_actual = float(df["Close"].iloc[-1])
+          ema5_val = float(df["EMA_5"].iloc[-1])
+          ema20_val = float(df["EMA_20"].iloc[-1])
+          rsi_val = (
+              float(df["RSI"].iloc[-1])
+              if not np.isnan(df["RSI"].iloc[-1])
+              else 50.0
+          )
+          bb_lower = float(df["BB_Lower"].iloc[-1])
+          bb_upper = float(df["BB_Upper"].iloc[-1])
+          atr_val = (
+              float(df["ATR"].iloc[-1])
+              if not np.isnan(df["ATR"].iloc[-1])
+              else 0.0
+          )
 
-        # Evaluación de Zonas Seguras dinámicas
-        c_call = (
-            (ema5_val > ema20_val)
-            and (rsi_val <= rsi_call)
-            and (precio_actual <= (bb_lower + (atr_val * mult_atr)))
-        )
-        c_put = (
-            (ema5_val < ema20_val)
-            and (rsi_val >= rsi_put)
-            and (precio_actual >= (bb_upper - (atr_val * mult_atr)))
-        )
+          # Umbrales según estricción
+          if "Conservador" in nivel_estriccion:
+            rsi_call, rsi_put = 38, 62
+            mult_atr = 0.25
+          elif "Agresivo" in nivel_estriccion:
+            rsi_call, rsi_put = 46, 54
+            mult_atr = 0.60
+          else:  # Moderado
+            rsi_call, rsi_put = 42, 58
+            mult_atr = 0.40
 
-        senal = "ARRIBA 🟢" if c_call else ("ABAJO 🔴" if c_put else None)
+          c_call = (
+              (ema5_val > ema20_val)
+              and (rsi_val <= rsi_call)
+              and (precio_actual <= (bb_lower + (atr_val * mult_atr)))
+          )
+          c_put = (
+              (ema5_val < ema20_val)
+              and (rsi_val >= rsi_put)
+              and (precio_actual >= (bb_upper - (atr_val * mult_atr)))
+          )
 
-        if senal:
-          resultados_temporales[nombre_activo] = {
-              "precio": precio_actual,
-              "rsi": rsi_val,
-              "senal": senal,
-              "entrada": hora_entrada_str,
-              "temporalidad": temporalidad,
-              "profit": data["profit"],
-          }
+          senal = "ARRIBA 🟢" if c_call else ("ABAJO 🔴" if c_put else None)
 
-          id_reg = f"{nombre_activo}-{hora_entrada_str}-{senal}"
-          if not any(
-              s.get("id") == id_reg for s in st.session_state.historial_app
-          ):
-            st.session_state.historial_app.append({
-                "id": id_reg,
-                "Hora": hora_actual_str,
-                "Activo": nombre_activo,
-                "Señal": senal,
-                "Entrada": hora_entrada_str,
-                "Temporalidad": temporalidad,
-                "Resultado": "PENDIENTE ⏳",
-                "timestamp_entrada": timestamp_siguiente_vela,
-                "precio_entrada": precio_actual,
-            })
-      except Exception:
-        pass
+          if senal:
+            # Clave única para permitir múltiples temporalidades por activo
+            clave_resultado = f"{nombre_activo} [{temp}]"
+            resultados_temporales[clave_resultado] = {
+                "activo_base": nombre_activo,
+                "precio": precio_actual,
+                "rsi": rsi_val,
+                "senal": senal,
+                "entrada": hora_entrada_str,
+                "temporalidad": temp,
+                "profit": data["profit"],
+            }
+
+            id_reg = f"{nombre_activo}-{temp}-{hora_entrada_str}-{senal}"
+            if not any(
+                s.get("id") == id_reg for s in st.session_state.historial_app
+            ):
+              st.session_state.historial_app.append({
+                  "id": id_reg,
+                  "Hora": hora_actual_str,
+                  "Activo": f"{nombre_activo} ({temp})",
+                  "Señal": senal,
+                  "Entrada": hora_entrada_str,
+                  "Temporalidad": temp,
+                  "Resultado": "PENDIENTE ⏳",
+                  "timestamp_entrada": timestamp_siguiente_vela,
+                  "precio_entrada": precio_actual,
+                  "symbol_ref": symbol,
+              })
+        except Exception:
+          pass
 
     st.session_state.ultimos_resultados_globales = resultados_temporales
 
@@ -366,10 +363,7 @@ for item in st.session_state.historial_app:
         import yfinance as yf
 
         sim_df = yf.download(
-            activos_quotex[item["Activo"]]["symbol"],
-            period="1d",
-            interval="1m",
-            progress=False,
+            item["symbol_ref"], period="1d", interval="1m", progress=False
         )
         if not sim_df.empty:
           if isinstance(sim_df.columns, pd.MultiIndex):
@@ -390,23 +384,24 @@ for item in st.session_state.historial_app:
 # --- PANEL VISUAL PRINCIPAL (SOLO ACTIVOS CON SEÑALES) ---
 if st.session_state.modo_automatico:
   st.success(
-      "🟢 **Modo Automático Activo**: Escaneando mercados OTC continuamente."
+      "🟢 **Modo Automático Activo**: Escaneando mercados OTC Multi-TF"
+      " continuamente."
   )
 
-st.subheader("🎯 Activos OTC con Zonas Seguras Detectadas")
+st.subheader("🎯 Activos OTC con Zonas Seguras Detectadas (Multi-TF)")
 
 resultados_activos = st.session_state.ultimos_resultados_globales
 
 if resultados_activos:
   cols = st.columns(2)
   idx = 0
-  for activo, info in resultados_activos.items():
+  for clave_res, info in resultados_activos.items():
     with cols[idx % 2]:
       st.markdown(
           f"""
             <div class="asset-card-active">
-                <h3 style="margin:0; color:#00ffcc;">⚡ {activo}</h3>
-                <p style="margin:4px 0; font-size:13px; color:#ffaa00;">Payout: <b>{info['profit']}</b> | Temporalidad: <b>{info['temporalidad']}</b> | RSI: <b>{info['rsi']:.1f}</b> | Precio: <b>{info['precio']:.4f}</b></p>
+                <h3 style="margin:0; color:#00ffcc;">⚡ {clave_res}</h3>
+                <p style="margin:4px 0; font-size:13px; color:#ffaa00;">Payout: <b>{info['profit']}</b> | RSI: <b>{info['rsi']:.1f}</b> | Precio: <b>{info['precio']:.4f}</b></p>
                 <hr style="margin:8px 0; border-color:rgba(0,255,128,0.3);">
                 <p style="margin:4px 0; font-size:18px;">Señal: <b style="color:{'#00ff80' if 'ARRIBA' in info['senal'] else '#ff4b4b'};">{info['senal']}</b></p>
                 <p style="margin:0; font-size:14px; color:#ffffff;">🕒 Hora de Entrada Sugerida: <b>{info['entrada']}</b></p>
@@ -417,9 +412,9 @@ if resultados_activos:
     idx += 1
 else:
   st.info(
-      "🔍 Escaneando activos OTC... En este momento no hay zonas seguras"
-      " activas con el filtro actual. Las alertas aparecerán automáticamente"
-      " aquí en cuanto el algoritmo detecte una oportunidad."
+      "🔍 Escaneando activos OTC en múltiples temporalidades... Las alertas"
+      " aparecerán automáticamente aquí en cuanto el algoritmo detecte una"
+      " oportunidad."
   )
 
 st.markdown("---")
