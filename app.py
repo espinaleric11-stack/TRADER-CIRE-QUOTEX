@@ -417,6 +417,11 @@ else:
 st.markdown("---")
 st.subheader("📜 Historial de Señales Automáticas Registradas")
 if len(st.session_state.historial_app) > 0:
+  # Asegurar compatibilidad si hay registros antiguos sin la clave Temporalidad
+  for h in st.session_state.historial_app:
+    if "Temporalidad" not in h:
+      h["Temporalidad"] = "1m"
+
   df_hist = pd.DataFrame(st.session_state.historial_app)[
       ["Hora", "Activo", "Señal", "Temporalidad", "Entrada", "Resultado"]
   ]
