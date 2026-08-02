@@ -116,11 +116,11 @@ if "modo_automatico" not in st.session_state:
 if "ultimos_resultados_globales" not in st.session_state:
   st.session_state.ultimos_resultados_globales = {}
 
-# Obtener hora actual del mercado en UTC-3
+# Obtener hora actual del mercado en UTC-3 (Sin segundos: %H:%M)
 tz_utc_minus_3 = timezone(timedelta(hours=-3))
-hora_actual_mercado = datetime.now(tz_utc_minus_3).strftime("%H:%M:%S")
+hora_actual_mercado = datetime.now(tz_utc_minus_3).strftime("%H:%M")
 
-# Cabecera con la hora actual integrada en la zona marcada
+# Cabecera con la hora actual integrada (Formato corto HH:MM)
 st.markdown(
     f"""
 <div class="cyber-header">
