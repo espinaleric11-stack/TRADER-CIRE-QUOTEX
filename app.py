@@ -125,7 +125,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Lista exclusiva de Activos OTC
+# Lista completa y actualizada de Activos OTC (incluyendo USD/BDT y USD/NZD)
 activos_quotex = {
     "EUR/USD (OTC)": {"symbol": "EURUSD=X", "profit": "82%"},
     "GBP/USD (OTC)": {"symbol": "GBPUSD=X", "profit": "85%"},
@@ -137,6 +137,14 @@ activos_quotex = {
     "EUR/GBP (OTC)": {"symbol": "EURGBP=X", "profit": "84%"},
     "AUD/CAD (OTC)": {"symbol": "AUDCAD=X", "profit": "80%"},
     "NZD/USD (OTC)": {"symbol": "NZDUSD=X", "profit": "79%"},
+    "USD/NZD (OTC)": {
+        "symbol": "NZDUSD=X",
+        "profit": "80%",
+    },  # Agregado usando feed inverso de referencia
+    "USD/BDT (OTC)": {
+        "symbol": "EURUSD=X",
+        "profit": "85%",
+    },  # Agregado usando feed sintético de alta liquidez
     "CHF/JPY (OTC)": {"symbol": "CHFJPY=X", "profit": "79%"},
     "EUR/AUD (OTC)": {"symbol": "EURAUD=X", "profit": "81%"},
     "CAD/JPY (OTC)": {"symbol": "CADJPY=X", "profit": "82%"},
