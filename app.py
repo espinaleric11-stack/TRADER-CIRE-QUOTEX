@@ -6,7 +6,7 @@ import streamlit as st
 
 # 1. Configuración de la interfaz
 st.set_page_config(
-    page_title="CyberTrader // Multi-Asset Scanner (UTC-3)",
+    page_title="CyberTrader // Quotex Signal Radar (UTC-3)",
     page_icon="⚡",
     layout="wide",
 )
@@ -67,19 +67,12 @@ st.markdown(
         letter-spacing: 1px;
     }
     .asset-card-active {
-        background: rgba(0, 255, 128, 0.15);
-        border: 1px solid #00ff80;
-        border-radius: 12px;
-        padding: 14px;
-        margin-bottom: 10px;
-        box-shadow: 0 0 15px rgba(0, 255, 128, 0.3);
-    }
-    .asset-card-waiting {
-        background: rgba(18, 20, 32, 0.7);
-        border: 1px solid rgba(0, 255, 204, 0.2);
-        border-radius: 12px;
-        padding: 14px;
-        margin-bottom: 10px;
+        background: rgba(0, 255, 128, 0.12);
+        border: 2px solid #00ff80;
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 15px;
+        box-shadow: 0 0 25px rgba(0, 255, 128, 0.25);
     }
     h2, h3 {
         color: #00ffcc !important;
@@ -120,8 +113,8 @@ st.markdown(
     <div class="cyber-logo">
         <span class="cyber-icon">⚡</span>
         <div>
-            <p class="cyber-title-text">CYBER-TRADER MULTI-ASSET</p>
-            <p class="cyber-subtitle">Escáner Automático de Zonas Seguras en Quotex</p>
+            <p class="cyber-title-text">CYBER-TRADER EXCLUSIVE SIGNALS</p>
+            <p class="cyber-subtitle">Filtro Automático de Zonas Seguras Quotex</p>
         </div>
     </div>
     <div class="utc-badge">
@@ -132,7 +125,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Lista completa de activos habituales en Quotex (Forex, OTC, Cripto y Metales)
+# Lista completa masiva de activos habituales en Quotex (Forex, OTC, Cripto y Metales)
 activos_quotex = {
     "EUR/USD (OTC)": {"symbol": "EURUSD=X", "profit": "82%"},
     "GBP/USD (OTC)": {"symbol": "GBPUSD=X", "profit": "85%"},
@@ -144,11 +137,17 @@ activos_quotex = {
     "EUR/GBP (OTC)": {"symbol": "EURGBP=X", "profit": "84%"},
     "AUD/CAD (OTC)": {"symbol": "AUDCAD=X", "profit": "80%"},
     "NZD/USD (OTC)": {"symbol": "NZDUSD=X", "profit": "79%"},
+    "CHF/JPY (OTC)": {"symbol": "CHFJPY=X", "profit": "79%"},
+    "EUR/AUD (OTC)": {"symbol": "EURAUD=X", "profit": "81%"},
+    "CAD/JPY (OTC)": {"symbol": "CADJPY=X", "profit": "82%"},
+    "GBP/AUD (OTC)": {"symbol": "GBPAUD=X", "profit": "83%"},
     "EUR/USD": {"symbol": "EURUSD=X", "profit": "75%"},
     "GBP/USD": {"symbol": "GBPUSD=X", "profit": "75%"},
     "USD/JPY": {"symbol": "USDJPY=X", "profit": "75%"},
+    "USD/CHF": {"symbol": "USDCHF=X", "profit": "75%"},
     "XAU/USD (Oro / OTC)": {"symbol": "GC=F", "profit": "88%"},
     "BTC/USD (Cripto)": {"symbol": "BTC-USD", "profit": "80%"},
+    "ETH/USD (Cripto)": {"symbol": "ETH-USD", "profit": "80%"},
 }
 
 # --- PANEL LATERAL DE CONFIGURACIÓN ---
@@ -173,7 +172,6 @@ if st.sidebar.button("🗑️ Limpiar Historial"):
   st.session_state.historial_app = []
   st.sidebar.success("¡Historial reiniciado!")
 
-# Estado actual en cabecera lateral
 st.sidebar.markdown("---")
 st.sidebar.markdown(
     "**Estado:** "
@@ -185,7 +183,7 @@ st.sidebar.markdown(
 )
 
 
-# Función para escanear todos los activos secuencialmente
+# Función de escaneo masivo en segundo plano
 def escanear_todos_los_activos():
   import yfinance as yf
 
@@ -220,7 +218,7 @@ def escanear_todos_los_activos():
       if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
 
-      # Indicadores
+      # Indicadores Técnicos
       df["EMA_5"] = df["Close"].ewm(span=5, adjust=False).mean()
       df["EMA_20"] = df["Close"].ewm(span=20, adjust=False).mean()
 
@@ -233,7 +231,7 @@ def escanear_todos_los_activos():
       df["BB_Middle"] = df["Close"].rolling(window=20).mean()
       bb_std = df["Close"].rolling(window=20).std()
       df["BB_Upper"] = df["BB_Middle"] + (bb_std * 2)
-      df["BB_Lower"] = df["BB_Middle"] - (bb_std * 2)
+      df["BB_Lower"] = df["BB_Middle'] - (bb_std * 2)
 
       high_low = df["High"] - df["Low"]
       high_close = np.abs(df["High"] - df["Close"].shift())
@@ -255,7 +253,7 @@ def escanear_todos_los_activos():
           float(df["ATR"].iloc[-1]) if not np.isnan(df["ATR"].iloc[-1]) else 0.0
       )
 
-      # Detección de Zonas Seguras (Modo Moderado/Conservador combinado)
+      # Evaluación de Zonas Seguras
       c_call = (
           (ema5_val > ema20_val)
           and (rsi_val <= 42)
@@ -269,16 +267,16 @@ def escanear_todos_los_activos():
 
       senal = "ARRIBA 🟢" if c_call else ("ABAJO 🔴" if c_put else None)
 
-      resultados_temporales[nombre_activo] = {
-          "precio": precio_actual,
-          "rsi": rsi_val,
-          "senal": senal,
-          "entrada": hora_entrada_str,
-          "profit": data["profit"],
-      }
-
-      # Registrar en historial si hay señal activa
+      # Solo guardamos si el activo encontró una señal real de zona segura
       if senal:
+        resultados_temporales[nombre_activo] = {
+            "precio": precio_actual,
+            "rsi": rsi_val,
+            "senal": senal,
+            "entrada": hora_entrada_str,
+            "profit": data["profit"],
+        }
+
         id_reg = f"{nombre_activo}-{hora_entrada_str}-{senal}"
         if not any(s.get("id") == id_reg for s in st.session_state.historial_app):
           st.session_state.historial_app.append({
@@ -336,46 +334,35 @@ for item in st.session_state.historial_app:
       except:
         pass
 
-# --- PANEL VISUAL PRINCIPAL ---
-st.subheader("📡 Radar de Todos los Activos Quotex (Zonas Seguras)")
+# --- PANEL VISUAL PRINCIPAL (SOLO ACTIVOS CON SEÑALES) ---
+st.subheader("🎯 Activos de Quotex con Zonas Seguras Detectadas")
 
-resultados = st.session_state.ultimos_resultados_globales
+resultados_activos = st.session_state.ultimos_resultados_globales
 
-if resultados:
-  # Dividir en columnas o filas de tarjetas para visualización limpia
-  cols = st.columns(3)
+if resultados_activos:
+  cols = st.columns(2)
   idx = 0
-  for activo, info in resultados.items():
-    with cols[idx % 3]:
-      has_signal = info["senal"] is not None
-      card_class = (
-          "asset-card-active" if has_signal else "asset-card-waiting"
-      )
-
-      signal_text = (
-          f"<b style='color:#00ff80;'>{info['senal']}</b>"
-          if has_signal
-          else "<span style='color:#8a99ad;'>⚪ Esperando Zona</span>"
-      )
-      entrada_text = (
-          f"🕒 Entrada: <b>{info['entrada']}</b>" if has_signal else ""
-      )
-
+  for activo, info in resultados_activos.items():
+    with cols[idx % 2]:
       st.markdown(
           f"""
-            <div class="{card_class}">
-                <h4 style="margin:0; color:#ffffff;">{activo}</h4>
-                <p style="margin:2px 0; font-size:12px; color:#ffaa00;">Payout: {info['profit']} | RSI: {info['rsi']:.1f}</p>
-                <hr style="margin:6px 0; border-color:rgba(0,255,204,0.2);">
-                <p style="margin:4px 0; font-size:15px;">Estado: {signal_text}</p>
-                <p style="margin:0; font-size:12px; color:#00ffcc;">{entrada_text}</p>
+            <div class="asset-card-active">
+                <h3 style="margin:0; color:#00ffcc;">⚡ {activo}</h3>
+                <p style="margin:4px 0; font-size:13px; color:#ffaa00;">Payout: <b>{info['profit']}</b> | RSI Actual: <b>{info['rsi']:.1f}</b> | Precio: <b>{info['precio']:.4f}</b></p>
+                <hr style="margin:8px 0; border-color:rgba(0,255,128,0.3);">
+                <p style="margin:4px 0; font-size:18px;">Señal: <b style="color:{'#00ff80' if 'ARRIBA' in info['senal'] else '#ff4b4b'};">{info['senal']}</b></p>
+                <p style="margin:0; font-size:14px; color:#ffffff;">🕒 Hora de Entrada Sugerida: <b>{info['entrada']}</b></p>
             </div>
             """,
           unsafe_allow_html=True,
       )
     idx += 1
 else:
-  st.info("Iniciando escaneo de los activos de Quotex...")
+  st.info(
+      "🔍 Escaneando todos los activos de Quotex... En este momento no hay"
+      " zonas seguras activas. Las alertas aparecerán automáticamente aquí en"
+      " cuanto el algoritmo detecte una oportunidad."
+  )
 
 st.markdown("---")
 st.subheader("📜 Historial de Señales Automáticas Registradas")
@@ -385,7 +372,7 @@ if len(st.session_state.historial_app) > 0:
   ]
   st.dataframe(df_hist.iloc[::-1], use_container_width=True)
 else:
-  st.info("Aún no se han disparado señales automáticas en los activos.")
+  st.info("Aún no se han registrado operaciones en el historial.")
 
 # Bucle automático en tiempo real
 if st.session_state.modo_automatico:
