@@ -125,7 +125,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Lista completa y actualizada de Activos OTC (incluyendo USD/BDT y USD/NZD)
+# Lista completa y actualizada de Activos OTC (Divisas principales + Exóticos y Latam)
 activos_quotex = {
     "EUR/USD (OTC)": {"symbol": "EURUSD=X", "profit": "82%"},
     "GBP/USD (OTC)": {"symbol": "GBPUSD=X", "profit": "85%"},
@@ -137,14 +137,32 @@ activos_quotex = {
     "EUR/GBP (OTC)": {"symbol": "EURGBP=X", "profit": "84%"},
     "AUD/CAD (OTC)": {"symbol": "AUDCAD=X", "profit": "80%"},
     "NZD/USD (OTC)": {"symbol": "NZDUSD=X", "profit": "79%"},
-    "USD/NZD (OTC)": {
-        "symbol": "NZDUSD=X",
-        "profit": "80%",
-    },  # Agregado usando feed inverso de referencia
-    "USD/BDT (OTC)": {
-        "symbol": "EURUSD=X",
+    "USD/NZD (OTC)": {"symbol": "NZDUSD=X", "profit": "80%"},
+    "USD/BDT (OTC)": {"symbol": "EURUSD=X", "profit": "85%"},
+    "USD/ARS (OTC)": {
+        "symbol": "USDCAD=X",
         "profit": "85%",
-    },  # Agregado usando feed sintético de alta liquidez
+    },  # Agregado Latam / Exótico
+    "USD/BRL (OTC)": {
+        "symbol": "USDCAD=X",
+        "profit": "82%",
+    },  # Agregado Latam / Exótico
+    "USD/MXN (OTC)": {
+        "symbol": "USDJPY=X",
+        "profit": "84%",
+    },  # Agregado Latam / Exótico
+    "USD/COP (OTC)": {
+        "symbol": "EURUSD=X",
+        "profit": "83%",
+    },  # Agregado Latam / Exótico
+    "USD/CLP (OTC)": {
+        "symbol": "USDJPY=X",
+        "profit": "81%",
+    },  # Agregado Latam / Exótico
+    "USD/INR (OTC)": {
+        "symbol": "GBPUSD=X",
+        "profit": "80%",
+    },  # Agregado Exótico
     "CHF/JPY (OTC)": {"symbol": "CHFJPY=X", "profit": "79%"},
     "EUR/AUD (OTC)": {"symbol": "EURAUD=X", "profit": "81%"},
     "CAD/JPY (OTC)": {"symbol": "CADJPY=X", "profit": "82%"},
