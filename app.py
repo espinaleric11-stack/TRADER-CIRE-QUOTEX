@@ -125,7 +125,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Lista completa masiva de activos habituales en Quotex (Forex, OTC, Cripto y Metales)
+# Lista completa masiva de activos habituales en Quotex
 activos_quotex = {
     "EUR/USD (OTC)": {"symbol": "EURUSD=X", "profit": "82%"},
     "GBP/USD (OTC)": {"symbol": "GBPUSD=X", "profit": "85%"},
@@ -231,7 +231,9 @@ def escanear_todos_los_activos():
       df["BB_Middle"] = df["Close"].rolling(window=20).mean()
       bb_std = df["Close"].rolling(window=20).std()
       df["BB_Upper"] = df["BB_Middle"] + (bb_std * 2)
-      df["BB_Lower"] = df["BB_Middle'] - (bb_std * 2)
+      df["BB_Lower"] = (
+          df["BB_Middle"] - bb_std * 2
+      )  # Corregido aquí (eliminada la comilla extra)
 
       high_low = df["High"] - df["Low"]
       high_close = np.abs(df["High"] - df["Close"].shift())
