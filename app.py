@@ -174,7 +174,7 @@ temporalidad = st.sidebar.selectbox(
     "Temporalidad de las Velas", ["1m", "5m", "15m", "1h"]
 )
 
-# Nuevo selector de Nivel de Estricción
+# Selector de Nivel de Estricción
 nivel_estriccion = st.sidebar.selectbox(
     "🎯 Nivel de Estricción del Escáner",
     ["🛡️ Conservador (Alta Confluencia)", "⚖️ Moderado", "🚀 Agresivo"],
@@ -317,6 +317,7 @@ def escanear_todos_los_activos():
               "rsi": rsi_val,
               "senal": senal,
               "entrada": hora_entrada_str,
+              "temporalidad": temporalidad,
               "profit": data["profit"],
           }
 
@@ -330,6 +331,7 @@ def escanear_todos_los_activos():
                 "Activo": nombre_activo,
                 "Señal": senal,
                 "Entrada": hora_entrada_str,
+                "Temporalidad": temporalidad,
                 "Resultado": "PENDIENTE ⏳",
                 "timestamp_entrada": timestamp_siguiente_vela,
                 "precio_entrada": precio_actual,
@@ -396,7 +398,7 @@ if resultados_activos:
           f"""
             <div class="asset-card-active">
                 <h3 style="margin:0; color:#00ffcc;">⚡ {activo}</h3>
-                <p style="margin:4px 0; font-size:13px; color:#ffaa00;">Payout: <b>{info['profit']}</b> | RSI Actual: <b>{info['rsi']:.1f}</b> | Precio: <b>{info['precio']:.4f}</b></p>
+                <p style="margin:4px 0; font-size:13px; color:#ffaa00;">Payout: <b>{info['profit']}</b> | Temporalidad: <b>{info['temporalidad']}</b> | RSI: <b>{info['rsi']:.1f}</b> | Precio: <b>{info['precio']:.4f}</b></p>
                 <hr style="margin:8px 0; border-color:rgba(0,255,128,0.3);">
                 <p style="margin:4px 0; font-size:18px;">Señal: <b style="color:{'#00ff80' if 'ARRIBA' in info['senal'] else '#ff4b4b'};">{info['senal']}</b></p>
                 <p style="margin:0; font-size:14px; color:#ffffff;">🕒 Hora de Entrada Sugerida: <b>{info['entrada']}</b></p>
@@ -416,7 +418,7 @@ st.markdown("---")
 st.subheader("📜 Historial de Señales Automáticas Registradas")
 if len(st.session_state.historial_app) > 0:
   df_hist = pd.DataFrame(st.session_state.historial_app)[
-      ["Hora", "Activo", "Señal", "Entrada", "Resultado"]
+      ["Hora", "Activo", "Señal", "Temporalidad", "Entrada", "Resultado"]
   ]
   st.dataframe(df_hist.iloc[::-1], use_container_width=True)
 else:
