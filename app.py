@@ -125,7 +125,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Lista ampliada masiva de activos compatibles con feeds globales
+# Lista completa masiva de activos compatibles con feeds globales
 activos_quotex = {
     # Divisas Principales y OTC
     "EUR/USD (OTC)": {"symbol": "EURUSD=X", "profit": "82%"},
@@ -173,6 +173,14 @@ st.sidebar.header("⚙️ Configuración Global")
 temporalidad = st.sidebar.selectbox(
     "Temporalidad de las Velas", ["1m", "5m", "15m", "1h"]
 )
+
+# Nuevo selector de Nivel de Estricción
+nivel_estriccion = st.sidebar.selectbox(
+    "🎯 Nivel de Estricción del Escáner",
+    ["🛡️ Conservador (Alta Confluencia)", "⚖️ Moderado", "🚀 Agresivo"],
+    index=1,
+)
+
 intervalo_escaneo = st.sidebar.slider(
     "Frecuencia de escaneo automático (segundos)", 10, 60, 20
 )
@@ -206,7 +214,7 @@ def escanear_todos_los_activos():
   import yfinance as yf
 
   with st.spinner(
-      "🔍 Analizando todos los activos principales y OTC de Quotex..."
+      f"🔍 Analizando activos bajo modo: {nivel_estriccion}..."
   ):
     tz_utc_minus_3 = timezone(timedelta(hours=-3))
     ahora_utc3 = datetime.now(tz_utc_minus_3)
@@ -278,16 +286,27 @@ def escanear_todos_los_activos():
             else 0.0
         )
 
-        # Evaluación de Zonas Seguras
+        # Configuración de umbrales según el nivel de estricción seleccionado
+        if "Conservador" in nivel_estriccion:
+          rsi_call, rsi_put = 38, 62
+          mult_atr = 0.25
+        elif "Agresivo" in nivel_estriccion:
+          rsi_call, rsi_put = 46, 54
+          mult_atr = 0.60
+        else:  # Moderado
+          rsi_call, rsi_put = 42, 58
+          mult_atr = 0.40
+
+        # Evaluación de Zonas Seguras dinámicas
         c_call = (
             (ema5_val > ema20_val)
-            and (rsi_val <= 42)
-            and (precio_actual <= (bb_lower + (atr_val * 0.4)))
+            and (rsi_val <= rsi_call)
+            and (precio_actual <= (bb_lower + (atr_val * mult_atr)))
         )
         c_put = (
             (ema5_val < ema20_val)
-            and (rsi_val >= 58)
-            and (precio_actual >= (bb_upper - (atr_val * 0.4)))
+            and (rsi_val >= rsi_put)
+            and (precio_actual >= (bb_upper - (atr_val * mult_atr)))
         )
 
         senal = "ARRIBA 🟢" if c_call else ("ABAJO 🔴" if c_put else None)
@@ -389,8 +408,8 @@ if resultados_activos:
 else:
   st.info(
       "🔍 Escaneando todos los activos... En este momento no hay zonas seguras"
-      " activas. Las alertas aparecerán automáticamente aquí en cuanto el"
-      " algoritmo detecte una oportunidad."
+      " activas con el filtro actual. Las alertas aparecerán automáticamente"
+      " aquí en cuanto el algoritmo detecte una oportunidad."
   )
 
 st.markdown("---")
