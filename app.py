@@ -56,6 +56,16 @@ st.markdown(
         margin: 0;
         text-transform: uppercase;
     }
+    .clock-badge {
+        background: rgba(255, 170, 0, 0.1);
+        border: 1px solid rgba(255, 170, 0, 0.5);
+        color: #ffaa00;
+        padding: 8px 16px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 1px;
+    }
     .utc-badge {
         background: rgba(0, 255, 204, 0.1);
         border: 1px solid rgba(0, 255, 204, 0.5);
@@ -106,21 +116,28 @@ if "modo_automatico" not in st.session_state:
 if "ultimos_resultados_globales" not in st.session_state:
   st.session_state.ultimos_resultados_globales = {}
 
-# Cabecera
+# Obtener hora actual del mercado en UTC-3
+tz_utc_minus_3 = timezone(timedelta(hours=-3))
+hora_actual_mercado = datetime.now(tz_utc_minus_3).strftime("%H:%M:%S")
+
+# Cabecera con la hora actual integrada en la zona marcada
 st.markdown(
-    """
+    f"""
 <div class="cyber-header">
     <div class="cyber-logo">
         <span class="cyber-icon">⚡</span>
         <div>
             <p class="cyber-title-text">CYBER-TRADER MASTER SCANNER</p>
-            <p class="cyber-subtitle">
-              Escáner Multi-Temporalidad Exclusivo OTC en Quotex
-            </p>
+            <p class="cyber-subtitle">Escáner Multi-Temporalidad Exclusivo OTC en Quotex</p>
         </div>
     </div>
-    <div class="utc-badge">
-        🌐 ZONA: UTC-3
+    <div style="display: flex; gap: 12px; align-items: center;">
+        <div class="clock-badge">
+            🕒 {hora_actual_mercado}
+        </div>
+        <div class="utc-badge">
+            🌐 ZONA: UTC-3
+        </div>
     </div>
 </div>
 """,
@@ -208,11 +225,9 @@ def escanear_todos_los_activos():
   with st.spinner(
       f"🔍 Analizando activos bajo modo: {nivel_estriccion} (Multi-TF)..."
   ):
-    tz_utc_minus_3 = timezone(timedelta(hours=-3))
     ahora_utc3 = datetime.now(tz_utc_minus_3)
     hora_actual_str = ahora_utc3.strftime("%H:%M:%S")
 
-    # Definir qué temporalidades se van a escanear
     if "Todas" in opcion_temporalidad:
       lista_temporalidades = ["1m", "5m", "15m", "1h"]
     else:
@@ -235,7 +250,6 @@ def escanear_todos_los_activos():
           if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
 
-          # Cálculo de hora de entrada según la temporalidad evaluada
           minutos_map = {"1m": 1, "5m": 5, "15m": 15, "1h": 60}
           minutos_add = minutos_map.get(temp, 1)
           segundos_totales = minutos_add * 60
@@ -247,7 +261,6 @@ def escanear_todos_los_activos():
           )
           hora_entrada_str = siguiente_vela_dt.strftime("%H:%M:%S")
 
-          # Indicadores Técnicos
           df["EMA_5"] = df["Close"].ewm(span=5, adjust=False).mean()
           df["EMA_20"] = df["Close"].ewm(span=20, adjust=False).mean()
 
@@ -286,14 +299,13 @@ def escanear_todos_los_activos():
               else 0.0
           )
 
-          # Umbrales según estricción
           if "Conservador" in nivel_estriccion:
             rsi_call, rsi_put = 38, 62
             mult_atr = 0.25
           elif "Agresivo" in nivel_estriccion:
             rsi_call, rsi_put = 46, 54
             mult_atr = 0.60
-          else:  # Moderado
+          else:
             rsi_call, rsi_put = 42, 58
             mult_atr = 0.40
 
@@ -311,7 +323,6 @@ def escanear_todos_los_activos():
           senal = "ARRIBA 🟢" if c_call else ("ABAJO 🔴" if c_put else None)
 
           if senal:
-            # Clave única para permitir múltiples temporalidades por activo
             clave_resultado = f"{nombre_activo} [{temp}]"
             resultados_temporales[clave_resultado] = {
                 "activo_base": nombre_activo,
@@ -345,7 +356,6 @@ def escanear_todos_los_activos():
     st.session_state.ultimos_resultados_globales = resultados_temporales
 
 
-# Ejecutar escaneo si está activo o vacío
 if (
     st.session_state.modo_automatico
     or not st.session_state.ultimos_resultados_globales
@@ -353,7 +363,6 @@ if (
   escanear_todos_los_activos()
 
 # --- ACTUALIZAR PENDIENTES DEL HISTORIAL ---
-tz_utc_minus_3 = timezone(timedelta(hours=-3))
 ahora_ts = datetime.now(tz_utc_minus_3).timestamp()
 
 for item in st.session_state.historial_app:
@@ -381,7 +390,7 @@ for item in st.session_state.historial_app:
       except:
         pass
 
-# --- PANEL VISUAL PRINCIPAL (SOLO ACTIVOS CON SEÑALES) ---
+# --- PANEL VISUAL PRINCIPAL ---
 if st.session_state.modo_automatico:
   st.success(
       "🟢 **Modo Automático Activo**: Escaneando mercados OTC Multi-TF"
