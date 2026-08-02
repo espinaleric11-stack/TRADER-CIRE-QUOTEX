@@ -6,7 +6,7 @@ import streamlit as st
 
 # 1. Configuración de la interfaz
 st.set_page_config(
-    page_title="CyberTrader // Quotex Signal Radar (UTC-3)",
+    page_title="CyberTrader // Quotex Master Signal Radar (UTC-3)",
     page_icon="⚡",
     layout="wide",
 )
@@ -113,8 +113,8 @@ st.markdown(
     <div class="cyber-logo">
         <span class="cyber-icon">⚡</span>
         <div>
-            <p class="cyber-title-text">CYBER-TRADER EXCLUSIVE SIGNALS</p>
-            <p class="cyber-subtitle">Filtro Automático de Zonas Seguras Quotex</p>
+            <p class="cyber-title-text">CYBER-TRADER MASTER SCANNER</p>
+            <p class="cyber-subtitle">Escáner Ampliado de Zonas Seguras en Quotex</p>
         </div>
     </div>
     <div class="utc-badge">
@@ -125,8 +125,9 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Lista completa masiva de activos habituales en Quotex
+# Lista ampliada masiva de activos compatibles con feeds globales
 activos_quotex = {
+    # Divisas Principales y OTC
     "EUR/USD (OTC)": {"symbol": "EURUSD=X", "profit": "82%"},
     "GBP/USD (OTC)": {"symbol": "GBPUSD=X", "profit": "85%"},
     "USD/CAD (OTC)": {"symbol": "USDCAD=X", "profit": "84%"},
@@ -141,13 +142,30 @@ activos_quotex = {
     "EUR/AUD (OTC)": {"symbol": "EURAUD=X", "profit": "81%"},
     "CAD/JPY (OTC)": {"symbol": "CADJPY=X", "profit": "82%"},
     "GBP/AUD (OTC)": {"symbol": "GBPAUD=X", "profit": "83%"},
+    "USD/CHF (OTC)": {"symbol": "USDCHF=X", "profit": "80%"},
+    "EUR/CHF (OTC)": {"symbol": "EURCHF=X", "profit": "78%"},
+    "AUD/NZD (OTC)": {"symbol": "AUDNZD=X", "profit": "79%"},
+    "NZD/JPY (OTC)": {"symbol": "NZDJPY=X", "profit": "77%"},
+    # Divisas Mercado Regular
     "EUR/USD": {"symbol": "EURUSD=X", "profit": "75%"},
     "GBP/USD": {"symbol": "GBPUSD=X", "profit": "75%"},
     "USD/JPY": {"symbol": "USDJPY=X", "profit": "75%"},
     "USD/CHF": {"symbol": "USDCHF=X", "profit": "75%"},
-    "XAU/USD (Oro / OTC)": {"symbol": "GC=F", "profit": "88%"},
+    "AUD/USD": {"symbol": "AUDUSD=X", "profit": "75%"},
+    "NZD/USD": {"symbol": "NZDUSD=X", "profit": "75%"},
+    # Criptomonedas
     "BTC/USD (Cripto)": {"symbol": "BTC-USD", "profit": "80%"},
     "ETH/USD (Cripto)": {"symbol": "ETH-USD", "profit": "80%"},
+    "LTC/USD (Cripto)": {"symbol": "LTC-USD", "profit": "78%"},
+    "BCH/USD (Cripto)": {"symbol": "BCH-USD", "profit": "75%"},
+    "XRP/USD (Cripto)": {"symbol": "XRP-USD", "profit": "78%"},
+    # Materias Primas e Índices
+    "XAU/USD (Oro / OTC)": {"symbol": "GC=F", "profit": "88%"},
+    "XAG/USD (Plata)": {"symbol": "SI=F", "profit": "82%"},
+    "USOIL (Petróleo WTI)": {"symbol": "CL=F", "profit": "83%"},
+    "S&P 500 (US500)": {"symbol": "^GSPC", "profit": "85%"},
+    "NASDAQ (US100)": {"symbol": "^IXIC", "profit": "85%"},
+    "DOW JONES (US30)": {"symbol": "^DJI", "profit": "84%"},
 }
 
 # --- PANEL LATERAL DE CONFIGURACIÓN ---
@@ -187,9 +205,8 @@ st.sidebar.markdown(
 def escanear_todos_los_activos():
   import yfinance as yf
 
-  # Indicador visual en pantalla de que el escaneo está en marcha
   with st.spinner(
-      "🔍 Analizando todos los activos de Quotex en tiempo real..."
+      "🔍 Analizando todos los activos principales y OTC de Quotex..."
   ):
     tz_utc_minus_3 = timezone(timedelta(hours=-3))
     ahora_utc3 = datetime.now(tz_utc_minus_3)
@@ -347,7 +364,7 @@ for item in st.session_state.historial_app:
 if st.session_state.modo_automatico:
   st.success("🟢 **Modo Automático Activo**: Escaneando mercados continuamente.")
 
-st.subheader("🎯 Activos de Quotex con Zonas Seguras Detectadas")
+st.subheader("🎯 Activos con Zonas Seguras Detectadas")
 
 resultados_activos = st.session_state.ultimos_resultados_globales
 
@@ -371,9 +388,9 @@ if resultados_activos:
     idx += 1
 else:
   st.info(
-      "🔍 Escaneando todos los activos de Quotex... En este momento no hay"
-      " zonas seguras activas. Las alertas aparecerán automáticamente aquí en"
-      " cuanto el algoritmo detecte una oportunidad."
+      "🔍 Escaneando todos los activos... En este momento no hay zonas seguras"
+      " activas. Las alertas aparecerán automáticamente aquí en cuanto el"
+      " algoritmo detecte una oportunidad."
   )
 
 st.markdown("---")
