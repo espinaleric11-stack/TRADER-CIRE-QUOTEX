@@ -183,118 +183,125 @@ st.sidebar.markdown(
 )
 
 
-# Función de escaneo masivo en segundo plano
+# Función de escaneo masivo con indicador visual dinámico
 def escanear_todos_los_activos():
   import yfinance as yf
 
-  tz_utc_minus_3 = timezone(timedelta(hours=-3))
-  ahora_utc3 = datetime.now(tz_utc_minus_3)
-  hora_actual_str = ahora_utc3.strftime("%H:%M:%S")
+  # Indicador visual en pantalla de que el escaneo está en marcha
+  with st.spinner(
+      "🔍 Analizando todos los activos de Quotex en tiempo real..."
+  ):
+    tz_utc_minus_3 = timezone(timedelta(hours=-3))
+    ahora_utc3 = datetime.now(tz_utc_minus_3)
+    hora_actual_str = ahora_utc3.strftime("%H:%M:%S")
 
-  minutos_map = {"1m": 1, "5m": 5, "15m": 15, "1h": 60}
-  minutos_add = minutos_map.get(temporalidad, 1)
-  segundos_totales = minutos_add * 60
-  timestamp_siguiente_vela = (
-      (ahora_utc3.timestamp() // segundos_totales) + 1
-  ) * segundos_totales
-  siguiente_vela_dt = datetime.fromtimestamp(
-      timestamp_siguiente_vela, tz_utc_minus_3
-  )
-  hora_entrada_str = siguiente_vela_dt.strftime("%H:%M:%S")
+    minutos_map = {"1m": 1, "5m": 5, "15m": 15, "1h": 60}
+    minutos_add = minutos_map.get(temporalidad, 1)
+    segundos_totales = minutos_add * 60
+    timestamp_siguiente_vela = (
+        (ahora_utc3.timestamp() // segundos_totales) + 1
+    ) * segundos_totales
+    siguiente_vela_dt = datetime.fromtimestamp(
+        timestamp_siguiente_vela, tz_utc_minus_3
+    )
+    hora_entrada_str = siguiente_vela_dt.strftime("%H:%M:%S")
 
-  resultados_temporales = {}
+    resultados_temporales = {}
 
-  for nombre_activo, data in activos_quotex.items():
-    try:
-      symbol = data["symbol"]
-      periodo = "1d" if temporalidad in ["1m", "5m", "15m"] else "5d"
-      df = yf.download(
-          symbol, period=periodo, interval=temporalidad, progress=False
-      )
+    for nombre_activo, data in activos_quotex.items():
+      try:
+        symbol = data["symbol"]
+        periodo = "1d" if temporalidad in ["1m", "5m", "15m"] else "5d"
+        df = yf.download(
+            symbol, period=periodo, interval=temporalidad, progress=False
+        )
 
-      if df.empty or len(df) < 30:
-        continue
+        if df.empty or len(df) < 30:
+          continue
 
-      if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.get_level_values(0)
+        if isinstance(df.columns, pd.MultiIndex):
+          df.columns = df.columns.get_level_values(0)
 
-      # Indicadores Técnicos
-      df["EMA_5"] = df["Close"].ewm(span=5, adjust=False).mean()
-      df["EMA_20"] = df["Close"].ewm(span=20, adjust=False).mean()
+        # Indicadores Técnicos
+        df["EMA_5"] = df["Close"].ewm(span=5, adjust=False).mean()
+        df["EMA_20"] = df["Close"].ewm(span=20, adjust=False).mean()
 
-      delta = df["Close"].diff()
-      gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-      loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-      rs = gain / loss
-      df["RSI"] = 100 - (100 / (1 + rs))
+        delta = df["Close"].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+        rs = gain / loss
+        df["RSI"] = 100 - (100 / (1 + rs))
 
-      df["BB_Middle"] = df["Close"].rolling(window=20).mean()
-      bb_std = df["Close"].rolling(window=20).std()
-      df["BB_Upper"] = df["BB_Middle"] + (bb_std * 2)
-      df["BB_Lower"] = (
-          df["BB_Middle"] - bb_std * 2
-      )  # Corregido aquí (eliminada la comilla extra)
+        df["BB_Middle"] = df["Close"].rolling(window=20).mean()
+        bb_std = df["Close"].rolling(window=20).std()
+        df["BB_Upper"] = df["BB_Middle"] + (bb_std * 2)
+        df["BB_Lower"] = df["BB_Middle"] - (bb_std * 2)
 
-      high_low = df["High"] - df["Low"]
-      high_close = np.abs(df["High"] - df["Close"].shift())
-      low_close = np.abs(df["Low"] - df["Close"].shift())
-      true_range = pd.concat([high_low, high_close, low_close], axis=1).max(
-          axis=1
-      )
-      df["ATR"] = true_range.rolling(window=14).mean()
+        high_low = df["High"] - df["Low"]
+        high_close = np.abs(df["High"] - df["Close"].shift())
+        low_close = np.abs(df["Low"] - df["Close"].shift())
+        true_range = pd.concat([high_low, high_close, low_close], axis=1).max(
+            axis=1
+        )
+        df["ATR"] = true_range.rolling(window=14).mean()
 
-      precio_actual = float(df["Close"].iloc[-1])
-      ema5_val = float(df["EMA_5"].iloc[-1])
-      ema20_val = float(df["EMA_20"].iloc[-1])
-      rsi_val = (
-          float(df["RSI"].iloc[-1]) if not np.isnan(df["RSI"].iloc[-1]) else 50.0
-      )
-      bb_lower = float(df["BB_Lower"].iloc[-1])
-      bb_upper = float(df["BB_Upper"].iloc[-1])
-      atr_val = (
-          float(df["ATR"].iloc[-1]) if not np.isnan(df["ATR"].iloc[-1]) else 0.0
-      )
+        precio_actual = float(df["Close"].iloc[-1])
+        ema5_val = float(df["EMA_5"].iloc[-1])
+        ema20_val = float(df["EMA_20"].iloc[-1])
+        rsi_val = (
+            float(df["RSI"].iloc[-1])
+            if not np.isnan(df["RSI"].iloc[-1])
+            else 50.0
+        )
+        bb_lower = float(df["BB_Lower"].iloc[-1])
+        bb_upper = float(df["BB_Upper"].iloc[-1])
+        atr_val = (
+            float(df["ATR"].iloc[-1])
+            if not np.isnan(df["ATR"].iloc[-1])
+            else 0.0
+        )
 
-      # Evaluación de Zonas Seguras
-      c_call = (
-          (ema5_val > ema20_val)
-          and (rsi_val <= 42)
-          and (precio_actual <= (bb_lower + (atr_val * 0.4)))
-      )
-      c_put = (
-          (ema5_val < ema20_val)
-          and (rsi_val >= 58)
-          and (precio_actual >= (bb_upper - (atr_val * 0.4)))
-      )
+        # Evaluación de Zonas Seguras
+        c_call = (
+            (ema5_val > ema20_val)
+            and (rsi_val <= 42)
+            and (precio_actual <= (bb_lower + (atr_val * 0.4)))
+        )
+        c_put = (
+            (ema5_val < ema20_val)
+            and (rsi_val >= 58)
+            and (precio_actual >= (bb_upper - (atr_val * 0.4)))
+        )
 
-      senal = "ARRIBA 🟢" if c_call else ("ABAJO 🔴" if c_put else None)
+        senal = "ARRIBA 🟢" if c_call else ("ABAJO 🔴" if c_put else None)
 
-      # Solo guardamos si el activo encontró una señal real de zona segura
-      if senal:
-        resultados_temporales[nombre_activo] = {
-            "precio": precio_actual,
-            "rsi": rsi_val,
-            "senal": senal,
-            "entrada": hora_entrada_str,
-            "profit": data["profit"],
-        }
+        if senal:
+          resultados_temporales[nombre_activo] = {
+              "precio": precio_actual,
+              "rsi": rsi_val,
+              "senal": senal,
+              "entrada": hora_entrada_str,
+              "profit": data["profit"],
+          }
 
-        id_reg = f"{nombre_activo}-{hora_entrada_str}-{senal}"
-        if not any(s.get("id") == id_reg for s in st.session_state.historial_app):
-          st.session_state.historial_app.append({
-              "id": id_reg,
-              "Hora": hora_actual_str,
-              "Activo": nombre_activo,
-              "Señal": senal,
-              "Entrada": hora_entrada_str,
-              "Resultado": "PENDIENTE ⏳",
-              "timestamp_entrada": timestamp_siguiente_vela,
-              "precio_entrada": precio_actual,
-          })
-    except Exception:
-      pass
+          id_reg = f"{nombre_activo}-{hora_entrada_str}-{senal}"
+          if not any(
+              s.get("id") == id_reg for s in st.session_state.historial_app
+          ):
+            st.session_state.historial_app.append({
+                "id": id_reg,
+                "Hora": hora_actual_str,
+                "Activo": nombre_activo,
+                "Señal": senal,
+                "Entrada": hora_entrada_str,
+                "Resultado": "PENDIENTE ⏳",
+                "timestamp_entrada": timestamp_siguiente_vela,
+                "precio_entrada": precio_actual,
+            })
+      except Exception:
+        pass
 
-  st.session_state.ultimos_resultados_globales = resultados_temporales
+    st.session_state.ultimos_resultados_globales = resultados_temporales
 
 
 # Ejecutar escaneo si está activo o vacío
@@ -337,6 +344,9 @@ for item in st.session_state.historial_app:
         pass
 
 # --- PANEL VISUAL PRINCIPAL (SOLO ACTIVOS CON SEÑALES) ---
+if st.session_state.modo_automatico:
+  st.success("🟢 **Modo Automático Activo**: Escaneando mercados continuamente.")
+
 st.subheader("🎯 Activos de Quotex con Zonas Seguras Detectadas")
 
 resultados_activos = st.session_state.ultimos_resultados_globales
