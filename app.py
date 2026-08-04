@@ -1,17 +1,17 @@
-import time
 from datetime import datetime, timedelta, timezone
+import time
 import numpy as np
 import pandas as pd
 import streamlit as st
 
-# 1. Configuración de la interfaz
+# 1. Configuración de la interfaz optimizada para móviles
 st.set_page_config(
-    page_title="CyberTrader // Quotex Master Signal Radar (Multi-TF OTC)",
+    page_title="CyberTrader // Quotex Master Signal Radar",
     page_icon="⚡",
     layout="wide",
 )
 
-# 2. Inyectar Estilos CSS Futuristas
+# 2. Inyectar Estilos CSS Adaptativos (Mobile & Desktop)
 st.markdown(
     """
 <style>
@@ -21,68 +21,74 @@ st.markdown(
         font-family: 'Segoe UI', Roboto, Helvetica, sans-serif;
     }
     .cyber-header {
-        background: linear-gradient(135deg, rgba(18, 20, 32, 0.8) 0%, rgba(26, 29, 45, 0.8) 100%);
+        background: linear-gradient(135deg, rgba(18, 20, 32, 0.9) 0%, rgba(26, 29, 45, 0.9) 100%);
         backdrop-filter: blur(10px);
         border: 1px solid rgba(0, 255, 204, 0.3);
-        border-radius: 16px;
-        padding: 18px 28px;
+        border-radius: 14px;
+        padding: 14px 18px;
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 25px;
+        margin-bottom: 20px;
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        gap: 10px;
     }
     .cyber-logo {
         display: flex;
         align-items: center;
-        gap: 15px;
+        gap: 12px;
     }
     .cyber-icon {
-        font-size: 28px;
+        font-size: 24px;
         filter: drop-shadow(0 0 10px rgba(0, 255, 204, 0.6));
     }
     .cyber-title-text {
-        font-size: 22px;
+        font-size: 18px;
         font-weight: 900;
-        letter-spacing: 2px;
+        letter-spacing: 1px;
         color: #00ffcc;
         text-shadow: 0 0 12px rgba(0, 255, 204, 0.5);
         margin: 0;
     }
     .cyber-subtitle {
-        font-size: 11px;
+        font-size: 10px;
         color: #8a99ad;
-        letter-spacing: 1px;
+        letter-spacing: 0.5px;
         margin: 0;
         text-transform: uppercase;
+    }
+    .badge-container {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
     }
     .clock-badge {
         background: rgba(255, 170, 0, 0.1);
         border: 1px solid rgba(255, 170, 0, 0.5);
         color: #ffaa00;
-        padding: 8px 16px;
-        border-radius: 10px;
-        font-size: 14px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 12px;
         font-weight: 800;
-        letter-spacing: 1px;
     }
     .utc-badge {
         background: rgba(0, 255, 204, 0.1);
         border: 1px solid rgba(0, 255, 204, 0.5);
         color: #00ffcc;
-        padding: 8px 16px;
-        border-radius: 10px;
-        font-size: 12px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 11px;
         font-weight: 700;
-        letter-spacing: 1px;
     }
     .asset-card-active {
-        background: rgba(0, 255, 128, 0.12);
+        background: rgba(0, 255, 128, 0.08);
         border: 2px solid #00ff80;
-        border-radius: 14px;
-        padding: 20px;
-        margin-bottom: 15px;
-        box-shadow: 0 0 25px rgba(0, 255, 128, 0.25);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 0 20px rgba(0, 255, 128, 0.2);
     }
     h2, h3 {
         color: #00ffcc !important;
@@ -94,14 +100,14 @@ st.markdown(
         font-weight: 800;
         border: none;
         border-radius: 10px;
-        padding: 0.65rem 1.4rem;
-        box-shadow: 0 0 20px rgba(0, 255, 204, 0.4);
+        padding: 0.6rem 1.2rem;
+        width: 100%;
+        box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
         transition: all 0.3s ease;
     }
     .stButton>button:hover {
         opacity: 0.95;
-        box-shadow: 0 0 30px rgba(0, 255, 204, 0.8);
-        transform: translateY(-2px);
+        box-shadow: 0 0 25px rgba(0, 255, 204, 0.8);
     }
 </style>
 """,
@@ -116,28 +122,24 @@ if "modo_automatico" not in st.session_state:
 if "ultimos_resultados_globales" not in st.session_state:
   st.session_state.ultimos_resultados_globales = {}
 
-# Obtener hora actual del mercado en UTC-3 (Sin segundos: %H:%M)
+# Obtener hora actual del mercado en UTC-3
 tz_utc_minus_3 = timezone(timedelta(hours=-3))
 hora_actual_mercado = datetime.now(tz_utc_minus_3).strftime("%H:%M")
 
-# Cabecera con la hora actual integrada (Formato corto HH:MM)
+# Cabecera adaptable
 st.markdown(
     f"""
 <div class="cyber-header">
     <div class="cyber-logo">
         <span class="cyber-icon">⚡</span>
         <div>
-            <p class="cyber-title-text">CYBER-TRADER MASTER SCANNER</p>
-            <p class="cyber-subtitle">Escáner Multi-Temporalidad Exclusivo OTC en Quotex</p>
+            <p class="cyber-title-text">CYBER-TRADER MOBILE RADAR</p>
+            <p class="cyber-subtitle">Escáner Multi-Nivel Simultáneo (OTC)</p>
         </div>
     </div>
-    <div style="display: flex; gap: 12px; align-items: center;">
-        <div class="clock-badge">
-            🕒 {hora_actual_mercado}
-        </div>
-        <div class="utc-badge">
-            🌐 ZONA: UTC-3
-        </div>
+    <div class="badge-container">
+        <div class="clock-badge">🕒 {hora_actual_mercado}</div>
+        <div class="utc-badge">🌐 UTC-3</div>
     </div>
 </div>
 """,
@@ -156,14 +158,7 @@ activos_quotex = {
     "EUR/GBP (OTC)": {"symbol": "EURGBP=X", "profit": "84%"},
     "AUD/CAD (OTC)": {"symbol": "AUDCAD=X", "profit": "80%"},
     "NZD/USD (OTC)": {"symbol": "NZDUSD=X", "profit": "79%"},
-    "USD/NZD (OTC)": {"symbol": "NZDUSD=X", "profit": "80%"},
-    "USD/BDT (OTC)": {"symbol": "EURUSD=X", "profit": "85%"},
-    "USD/ARS (OTC)": {"symbol": "USDCAD=X", "profit": "85%"},
-    "USD/BRL (OTC)": {"symbol": "USDCAD=X", "profit": "82%"},
     "USD/MXN (OTC)": {"symbol": "USDJPY=X", "profit": "84%"},
-    "USD/COP (OTC)": {"symbol": "EURUSD=X", "profit": "83%"},
-    "USD/CLP (OTC)": {"symbol": "USDJPY=X", "profit": "81%"},
-    "USD/INR (OTC)": {"symbol": "GBPUSD=X", "profit": "80%"},
     "CHF/JPY (OTC)": {"symbol": "CHFJPY=X", "profit": "79%"},
     "EUR/AUD (OTC)": {"symbol": "EURAUD=X", "profit": "81%"},
     "CAD/JPY (OTC)": {"symbol": "CADJPY=X", "profit": "82%"},
@@ -175,29 +170,22 @@ activos_quotex = {
     "XAU/USD (Oro / OTC)": {"symbol": "GC=F", "profit": "88%"},
 }
 
-# --- PANEL LATERAL DE CONFIGURACIÓN ---
-st.sidebar.header("⚙️ Configuración Global")
+# --- PANEL LATERAL SIMPLIFICADO PARA MÓVIL ---
+st.sidebar.header("⚙️ Controles del Sistema")
 
 opcion_temporalidad = st.sidebar.selectbox(
     "Temporalidad de las Velas",
-    ["🌐 Todas las Temporalidades (Multi-TF)", "1m", "5m", "15m", "1h"],
-)
-
-# Selector de Nivel de Estricción
-nivel_estriccion = st.sidebar.selectbox(
-    "🎯 Nivel de Estricción del Escáner",
-    ["🛡️ Conservador (Alta Confluencia)", "⚖️ Moderado", "🚀 Agresivo"],
-    index=1,
+    ["🌐 Todas (Multi-TF)", "1m", "5m", "15m", "1h"],
 )
 
 intervalo_escaneo = st.sidebar.slider(
-    "Frecuencia de escaneo automático (segundos)", 10, 60, 20
+    "Frecuencia de escaneo (segundos)", 10, 60, 10
 )
 
 st.sidebar.markdown("---")
 col_b1, col_b2 = st.sidebar.columns(2)
 with col_b1:
-  if st.button("🟢 INICIAR AUTO"):
+  if st.button("🟢 INICIAR"):
     st.session_state.modo_automatico = True
 with col_b2:
   if st.button("🔴 DETENER"):
@@ -211,19 +199,19 @@ st.sidebar.markdown("---")
 st.sidebar.markdown(
     "**Estado:** "
     + (
-        "🟢 ESCANEANDO MERCADOS"
+        "🟢 ESCANEANDO 3 NIVELES"
         if st.session_state.modo_automatico
         else "⏸️ EN ESPERA"
     )
 )
 
 
-# Función de escaneo masivo multi-temporalidad
+# Función de escaneo masivo evaluando los 3 niveles simultáneamente
 def escanear_todos_los_activos():
   import yfinance as yf
 
   with st.spinner(
-      f"🔍 Analizando activos bajo modo: {nivel_estriccion} (Multi-TF)..."
+      "🔍 Escaneando mercados y validando los 3 niveles en paralelo..."
   ):
     ahora_utc3 = datetime.now(tz_utc_minus_3)
     hora_actual_str = ahora_utc3.strftime("%H:%M:%S")
@@ -234,6 +222,11 @@ def escanear_todos_los_activos():
       lista_temporalidades = [opcion_temporalidad]
 
     resultados_temporales = {}
+    niveles_config = {
+        "🛡️ Conservador": {"rsi_c": 32, "rsi_p": 68, "atr_m": 0.15},
+        "⚖️ Moderado": {"rsi_c": 37, "rsi_p": 63, "atr_m": 0.30},
+        "🚀 Agresivo": {"rsi_c": 42, "rsi_p": 58, "atr_m": 0.45},
+    }
 
     for nombre_activo, data in activos_quotex.items():
       symbol = data["symbol"]
@@ -284,6 +277,7 @@ def escanear_todos_los_activos():
           df["ATR"] = true_range.rolling(window=14).mean()
 
           precio_actual = float(df["Close"].iloc[-1])
+          precio_anterior = float(df["Close"].iloc[-2])
           ema5_val = float(df["EMA_5"].iloc[-1])
           ema20_val = float(df["EMA_20"].iloc[-1])
           rsi_val = (
@@ -299,57 +293,56 @@ def escanear_todos_los_activos():
               else 0.0
           )
 
-          if "Conservador" in nivel_estriccion:
-            rsi_call, rsi_put = 38, 62
-            mult_atr = 0.25
-          elif "Agresivo" in nivel_estriccion:
-            rsi_call, rsi_put = 46, 54
-            mult_atr = 0.60
-          else:
-            rsi_call, rsi_put = 42, 58
-            mult_atr = 0.40
+          # Evaluar los 3 niveles de estricción simultáneamente
+          for nombre_nivel, params in niveles_config.items():
+            c_call = (
+                (ema5_val > ema20_val)
+                and (rsi_val <= params["rsi_c"])
+                and (precio_actual <= (bb_lower + (atr_val * params["atr_m"])))
+                and (precio_actual > precio_anterior)
+            )
+            c_put = (
+                (ema5_val < ema20_val)
+                and (rsi_val >= params["rsi_p"])
+                and (precio_actual >= (bb_upper - (atr_val * params["atr_m"])))
+                and (precio_actual < precio_anterior)
+            )
 
-          c_call = (
-              (ema5_val > ema20_val)
-              and (rsi_val <= rsi_call)
-              and (precio_actual <= (bb_lower + (atr_val * mult_atr)))
-          )
-          c_put = (
-              (ema5_val < ema20_val)
-              and (rsi_val >= rsi_put)
-              and (precio_actual >= (bb_upper - (atr_val * mult_atr)))
-          )
+            senal = "ARRIBA 🟢" if c_call else ("ABAJO 🔴" if c_put else None)
 
-          senal = "ARRIBA 🟢" if c_call else ("ABAJO 🔴" if c_put else None)
+            if senal:
+              clave_resultado = f"{nombre_activo} [{temp}] - {nombre_nivel}"
+              info_senal = {
+                  "activo_base": nombre_activo,
+                  "precio": precio_actual,
+                  "rsi": rsi_val,
+                  "senal": senal,
+                  "entrada": hora_entrada_str,
+                  "temporalidad": temp,
+                  "nivel": nombre_nivel,
+                  "profit": data["profit"],
+                  "symbol": symbol,
+                  "timestamp": timestamp_siguiente_vela,
+              }
+              resultados_temporales[clave_resultado] = info_senal
 
-          if senal:
-            clave_resultado = f"{nombre_activo} [{temp}]"
-            resultados_temporales[clave_resultado] = {
-                "activo_base": nombre_activo,
-                "precio": precio_actual,
-                "rsi": rsi_val,
-                "senal": senal,
-                "entrada": hora_entrada_str,
-                "temporalidad": temp,
-                "profit": data["profit"],
-            }
+              id_reg = f"{nombre_activo}-{temp}-{nombre_nivel}-{hora_entrada_str}-{senal}"
+              if not any(
+                  s.get("id") == id_reg for s in st.session_state.historial_app
+              ):
+                st.session_state.historial_app.append({
+                    "id": id_reg,
+                    "Hora": hora_actual_str,
+                    "Activo": f"{nombre_activo} ({temp})",
+                    "Nivel": nombre_nivel,
+                    "Señal": senal,
+                    "Entrada": hora_entrada_str,
+                    "Resultado": "PENDIENTE ⏳",
+                    "timestamp_entrada": timestamp_siguiente_vela,
+                    "precio_entrada": precio_actual,
+                    "symbol_ref": symbol,
+                })
 
-            id_reg = f"{nombre_activo}-{temp}-{hora_entrada_str}-{senal}"
-            if not any(
-                s.get("id") == id_reg for s in st.session_state.historial_app
-            ):
-              st.session_state.historial_app.append({
-                  "id": id_reg,
-                  "Hora": hora_actual_str,
-                  "Activo": f"{nombre_activo} ({temp})",
-                  "Señal": senal,
-                  "Entrada": hora_entrada_str,
-                  "Temporalidad": temp,
-                  "Resultado": "PENDIENTE ⏳",
-                  "timestamp_entrada": timestamp_siguiente_vela,
-                  "precio_entrada": precio_actual,
-                  "symbol_ref": symbol,
-              })
         except Exception:
           pass
 
@@ -392,28 +385,26 @@ for item in st.session_state.historial_app:
 
 # --- PANEL VISUAL PRINCIPAL ---
 if st.session_state.modo_automatico:
-  st.success(
-      "🟢 **Modo Automático Activo**: Escaneando mercados OTC Multi-TF"
-      " continuamente."
-  )
+  st.success("🟢 **Modo Automático**: Escaneando los 3 niveles simultáneamente.")
 
-st.subheader("🎯 Activos OTC con Zonas Seguras Detectadas (Multi-TF)")
+st.subheader("🎯 Señales Detectadas (Multi-Nivel)")
 
 resultados_activos = st.session_state.ultimos_resultados_globales
 
 if resultados_activos:
-  cols = st.columns(2)
+  cols = st.columns(1 if len(resultados_activos) == 1 else 2)
   idx = 0
   for clave_res, info in resultados_activos.items():
-    with cols[idx % 2]:
+    with cols[idx % len(cols)]:
       st.markdown(
           f"""
             <div class="asset-card-active">
-                <h3 style="margin:0; color:#00ffcc;">⚡ {clave_res}</h3>
-                <p style="margin:4px 0; font-size:13px; color:#ffaa00;">Payout: <b>{info['profit']}</b> | RSI: <b>{info['rsi']:.1f}</b> | Precio: <b>{info['precio']:.4f}</b></p>
-                <hr style="margin:8px 0; border-color:rgba(0,255,128,0.3);">
-                <p style="margin:4px 0; font-size:18px;">Señal: <b style="color:{'#00ff80' if 'ARRIBA' in info['senal'] else '#ff4b4b'};">{info['senal']}</b></p>
-                <p style="margin:0; font-size:14px; color:#ffffff;">🕒 Hora de Entrada Sugerida: <b>{info['entrada']}</b></p>
+                <h3 style="margin:0; color:#00ffcc; font-size: 15px;">⚡ {info['activo_base']} [{info['temporalidad']}]</h3>
+                <p style="margin:4px 0; font-size:12px; color:#ffaa00;">Nivel: <b>{info['nivel']}</b> | Payout: <b>{info['profit']}</b></p>
+                <p style="margin:2px 0; font-size:12px; color:#a0aec0;">RSI: <b>{info['rsi']:.1f}</b> | Precio: <b>{info['precio']:.4f}</b></p>
+                <hr style="margin:6px 0; border-color:rgba(0,255,128,0.3);">
+                <p style="margin:4px 0; font-size:16px;">Señal: <b style="color:{'#00ff80' if 'ARRIBA' in info['senal'] else '#ff4b4b'};">{info['senal']}</b></p>
+                <p style="margin:0; font-size:12px; color:#ffffff;">🕒 Entrada: <b>{info['entrada']}</b></p>
             </div>
             """,
           unsafe_allow_html=True,
@@ -421,24 +412,19 @@ if resultados_activos:
     idx += 1
 else:
   st.info(
-      "🔍 Escaneando activos OTC en múltiples temporalidades... Las alertas"
-      " aparecerán automáticamente aquí en cuanto el algoritmo detecte una"
-      " oportunidad."
+      "🔍 Escaneando activos en los 3 niveles de estricción... Las alertas"
+      " aparecerán aquí en tiempo real."
   )
 
 st.markdown("---")
-st.subheader("📜 Historial de Señales Automáticas Registradas")
+st.subheader("📜 Historial de Señales")
 if len(st.session_state.historial_app) > 0:
-  for h in st.session_state.historial_app:
-    if "Temporalidad" not in h:
-      h["Temporalidad"] = "1m"
-
   df_hist = pd.DataFrame(st.session_state.historial_app)[
-      ["Hora", "Activo", "Señal", "Temporalidad", "Entrada", "Resultado"]
+      ["Hora", "Activo", "Nivel", "Señal", "Entrada", "Resultado"]
   ]
   st.dataframe(df_hist.iloc[::-1], use_container_width=True)
 else:
-  st.info("Aún no se han registrado operaciones en el historial.")
+  st.info("Aún no hay operaciones registradas.")
 
 # Bucle automático en tiempo real
 if st.session_state.modo_automatico:
